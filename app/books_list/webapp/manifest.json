@@ -30,6 +30,23 @@
           "odataVersion": "4.0"
         }
       }
+    },
+    "crossNavigation": {
+      "inbounds": {
+        "Books-display": {
+          "semanticObject": "Books",
+          "action": "display",
+          "title": "{{appTitle}}",
+          "signature": {
+            "parameters": {
+              "bookNo": {
+                "required": false
+              }
+            },
+            "additionalParameters": "ignored"
+          }
+        }
+      }
     }
   },
   "sap.ui": {

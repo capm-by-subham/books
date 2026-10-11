@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Local Fiori Launchpad SANDBOX with both Fiori Elements apps: http://localhost:4004/launchpad.html
+  (CAP serves everything in app/ as static files; the apps themselves are served by cds-plugin-ui5.)
+
+  Each entry under "applications" = one tile + one intent "SemanticObject-action".
+  Intent-based navigation (ALP 'Book No.' link, 'Open Book' button) only works inside a launchpad,
+  because the launchpad is what resolves "Books-display" to the Books app.
+  For development only — a real launchpad gets this from the content in SAP Build Work Zone.
+
+  Expected console noise: this is the CLASSIC sandbox (test-resources/.../sandbox.js). UI5 1.153 logs
+  "[FUTURE FATAL] Deprecated API ..." messages for it (classic homepage, createRenderer). They come from
+  the launchpad shell, not from the apps. The newer sandbox of the Fiori tools preview middleware
+  (flp.apps in ui5.yaml) would avoid them, but with cds-plugin-ui5 it made the server hang on startup.
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookshop Launchpad</title>
+    <script>
+        window["sap-ushell-config"] = {
+            defaultRenderer: "fiori2",
+            renderers: { fiori2: { componentData: { config: { search: "hidden", enableSearch: false } } } },
+            applications: {
+                // intent Books-display -> List Report / Object Page app (app/books_list)
+                "Books-display": {
+                    title: "Books Manager",
+                    description: "List Report + Object Page",
+                    additionalInformation: "SAPUI5.Component=bookslist",
+                    applicationType: "URL",
+                    url: "/bookslist/"
+                },
+                // intent BookSales-analyze -> Analytical List Page (app/book-sales-alp)
+                "BookSales-analyze": {
+                    title: "Book Sales Analysis",
+                    description: "Analytical List Page",
+                    additionalInformation: "SAPUI5.Component=booksalesalp",
+                    applicationType: "URL",
+                    url: "/booksalesalp/"
+                }
+            }
+        };
+    </script>
+    <script src="https://sapui5.hana.ondemand.com/1.153.0/test-resources/sap/ushell/bootstrap/sandbox.js" id="sap-ushell-bootstrap"></script>
+    <script id="sap-ui-bootstrap"
+        src="https://sapui5.hana.ondemand.com/1.153.0/resources/sap-ui-core.js"
+        data-sap-ui-libs="sap.m, sap.ushell, sap.fe.templates"
+        data-sap-ui-async="true"
+        data-sap-ui-theme="sap_horizon"
+        data-sap-ui-compatVersion="edge"
+        data-sap-ui-language="en"
+        data-sap-ui-resourceroots='{ "bookslist": "/bookslist/", "booksalesalp": "/booksalesalp/" }'
+        data-sap-ui-frameOptions="allow">
+    </script>
+    <script>
+        sap.ui.getCore().attachInit(function () {
+            sap.ushell.Container.createRenderer().placeAt("content");
+        });
+    </script>
+</head>
+<body class="sapUiBody" id="content"></body>
+</html>

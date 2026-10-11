@@ -11,13 +11,16 @@
   "scripts": {
     "start": "cds-serve",
     "watch-book": "cds watch --open book/index.html?sap-ui-xx-viewCache=false --livereload false",
-    "watch-books_list": "cds watch --open bookslist/index.html?sap-ui-xx-viewCache=false --livereload false"
+    "watch-books_list": "cds watch --open bookslist/index.html?sap-ui-xx-viewCache=false --livereload false",
+    "watch-book-sales-alp": "cds watch --open booksalesalp/index.html?sap-ui-xx-viewCache=false --livereload false",
+    "watch-launchpad": "cds watch --open launchpad.html --livereload false"
   },
   "private": true,
   "workspaces": [
     "app/*"
   ],
   "sapux": [
-    "app/books_list"
+    "app/books_list",
+    "app/book-sales-alp"
   ]
 }

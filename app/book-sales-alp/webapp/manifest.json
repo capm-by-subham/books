@@ -1,0 +1,245 @@
+{
+  "_version": "1.81.0",
+  "sap.app": {
+    "id": "booksalesalp",
+    "type": "application",
+    "i18n": {
+      "bundleUrl": "i18n/i18n.properties",
+      "supportedLocales": [
+        ""
+      ],
+      "fallbackLocale": ""
+    },
+    "applicationVersion": {
+      "version": "0.0.1"
+    },
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "resources": "resources.json",
+    "sourceTemplate": {
+      "id": "@sap/generator-fiori:alp",
+      "version": "1.20.2",
+      "toolsId": "71e9b92e-706b-4ee5-b17d-a91e084feb8b"
+    },
+    "dataSources": {
+      "mainService": {
+        "uri": "/odata/v4/analytics/",
+        "type": "OData",
+        "settings": {
+          "annotations": [],
+          "odataVersion": "4.0"
+        }
+      }
+    },
+    "crossNavigation": {
+      "inbounds": {
+        "BookSales-analyze": {
+          "semanticObject": "BookSales",
+          "action": "analyze",
+          "title": "{{appTitle}}",
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          }
+        }
+      },
+      "outbounds": {
+        "openBook": {
+          "semanticObject": "Books",
+          "action": "display",
+          "parameters": {}
+        }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "icons": {
+      "icon": "",
+      "favIcon": "",
+      "phone": "",
+      "phone@2": "",
+      "tablet": "",
+      "tablet@2": ""
+    },
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": true
+    }
+  },
+  "sap.ui5": {
+    "flexEnabled": true,
+    "dependencies": {
+      "minUI5Version": "1.153.0",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {},
+        "sap.fe.templates": {}
+      }
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "booksalesalp.i18n.i18n",
+          "supportedLocales": [
+            ""
+          ],
+          "fallbackLocale": ""
+        }
+      },
+      "": {
+        "dataSource": "mainService",
+        "preload": true,
+        "settings": {
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "earlyRequests": true
+        }
+      },
+      "@i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "uri": "i18n/i18n.properties",
+        "settings": {
+          "supportedLocales": [
+            ""
+          ],
+          "fallbackLocale": ""
+        }
+      }
+    },
+    "resources": {
+      "css": []
+    },
+    "routing": {
+      "config": {},
+      "routes": [
+        {
+          "pattern": ":?query:",
+          "name": "BookSalesList",
+          "target": "BookSalesList"
+        },
+        {
+          "pattern": "BookSales({key}):?query:",
+          "name": "BookSalesObjectPage",
+          "target": "BookSalesObjectPage"
+        }
+      ],
+      "targets": {
+        "BookSalesList": {
+          "type": "Component",
+          "id": "BookSalesList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "contextPath": "/BookSales",
+              "variantManagement": "Page",
+              "navigation": {
+                "BookSales": {
+                  "detail": {
+                    "route": "BookSalesObjectPage"
+                  }
+                }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "type": "AnalyticalTable",
+                    "selectionMode": "Multi",
+                    "enableExport": true
+                  }
+                },
+                "@com.sap.vocabularies.UI.v1.SelectionFields": {
+                  "layout": "CompactVisual",
+                  "initialLayout": "Visual",
+                  "filterFields": {
+                    "year": {
+                      "visualFilter": {
+                        "valueList": "com.sap.vocabularies.Common.v1.ValueList#visualFilter"
+                      }
+                    },
+                    "region_code": {
+                      "visualFilter": {
+                        "valueList": "com.sap.vocabularies.Common.v1.ValueList#visualFilter"
+                      }
+                    },
+                    "channel_code": {
+                      "visualFilter": {
+                        "valueList": "com.sap.vocabularies.Common.v1.ValueList#visualFilter"
+                      }
+                    }
+                  }
+                }
+              },
+              "views": {
+                "paths": [
+                  {
+                    "primary": [
+                      {
+                        "annotationPath": "com.sap.vocabularies.UI.v1.PresentationVariant"
+                      }
+                    ],
+                    "secondary": [
+                      {
+                        "annotationPath": "com.sap.vocabularies.UI.v1.PresentationVariant#table"
+                      }
+                    ],
+                    "defaultPath": "both"
+                  }
+                ]
+              },
+              "initialLoad": "Enabled",
+              "keyPerformanceIndicators": {
+                "revenue": {
+                  "model": "",
+                  "entitySet": "BookSales",
+                  "qualifier": "revenue"
+                },
+                "discount": {
+                  "model": "",
+                  "entitySet": "BookSales",
+                  "qualifier": "discount"
+                },
+                "copies": {
+                  "model": "",
+                  "entitySet": "BookSales",
+                  "qualifier": "copies"
+                },
+                "online": {
+                  "model": "",
+                  "entitySet": "BookSales",
+                  "qualifier": "online"
+                }
+              }
+            }
+          }
+        },
+        "BookSalesObjectPage": {
+          "type": "Component",
+          "id": "BookSalesObjectPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "editableHeaderContent": false,
+              "contextPath": "/BookSales"
+            }
+          }
+        }
+      }
+    }
+  },
+  "sap.fiori": {
+    "registrationIds": [],
+    "archeType": "analytical"
+  },
+  "sap.fe": {
+    "app": {
+      "enableLazyLoading": true
+    }
+  }
+}
