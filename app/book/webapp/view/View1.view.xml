@@ -1,0 +1,30 @@
+<mvc:View controllerName="book.controller.View1"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m">
+    <Page id="page" title="{i18n>title}">
+        <Table id="booksTable" items="{/Books}" mode="Delete" delete=".onDelete">
+        <headerToolbar>
+        <OverflowToolbar id="bar">
+        <Button id="btn" text="Add" press=".onAdd" />
+        <Button id="btn2" text="Save" press=".onSave" />
+        </OverflowToolbar>
+        </headerToolbar>
+            <columns>
+                <Column id="colID"><Text id="colIDText" text="ID"/></Column>
+                <Column id="colTitle"><Text id="colTitleText" text="Title"/></Column>
+                <Column id="colAuthor"><Text id="colAuthorText" text="Author"/></Column>
+                <Column id="colStock"><Text id="colStockText" text="Stock"/></Column>
+                <Column id="colAction"><Text id="colActionText" text=""/></Column>
+            </columns>
+            <items>
+                <ColumnListItem id="booksItem">
+                    <Text id="cellID" text="{ID}"/>
+                    <Text id="cellTitle" text="{title}"/>
+                    <Input id="cellAuthor" value="{author}"/>
+                    <Text id="cellStock" text="{stock}"/>
+                    <Button id="increaseStockBtn" text="+1 Stock" press=".onIncreaseStock"/>
+                </ColumnListItem>
+            </items>
+        </Table>
+    </Page>
+</mvc:View>
