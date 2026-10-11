@@ -1,0 +1,5 @@
+code;name;descr;criticality
+A;Available;In stock, 10 or more copies;3
+L;Low stock;Fewer than 10 copies left;2
+O;Out of stock;No copies left;1
+D;Discontinued;No longer sold or restocked;0

@@ -1,6 +1,11 @@
-ID,title,author
-1,Wuthering Heights,Emily Brontë
-2,Jane Eyre,Charlotte Brontë
-3,The Raven,Edgar Allen Poe
-4,Eleonora,Edgar Allen Poe
-5,Catweazle,Richard Carpenter
+ID;bookNo;title;author;stock;writer_ID;price;currency_code;rating;status_code;genre_code;publishedAt;descr;coverUrl
+1;BK-0001;Wuthering Heights;Emily Brontë;12;1;11.11;GBP;4.5;A;GOT;1847-12-01;The story of Heathcliff and Catherine Earnshaw and the passion that destroys both families on the Yorkshire moors.;https://picsum.photos/seed/bk0001/200/300
+2;BK-0002;Jane Eyre;Charlotte Brontë;11;2;12.34;GBP;4.7;A;ROM;1847-10-16;An orphaned governess finds independence and love at Thornfield Hall, despite the secret kept by its master, Mr. Rochester.;https://picsum.photos/seed/bk0002/200/300
+3;BK-0003;The Raven;Edgar Allen Poe;333;3;13.13;USD;4.2;A;POE;1845-01-29;A narrative poem in which a grieving man is visited at midnight by a talking raven that answers every question with "Nevermore".;https://picsum.photos/seed/bk0003/200/300
+4;BK-0004;Eleonora;Edgar Allen Poe;3;3;14.00;USD;3.6;D;GOT;1842-01-01;A short story about a man's love for his cousin Eleonora and the promise he makes to her before she dies.;https://picsum.photos/seed/bk0004/200/300
+5;BK-0005;Catweazle;Richard Carpenter;0;4;150.00;EUR;3.9;O;FAN;1970-01-01;An eleventh-century wizard falls through time into the modern world and mistakes electricity for magic.;https://picsum.photos/seed/bk0005/200/300
+6;BK-0006;Villette;Charlotte Brontë;4;2;9.99;GBP;4.0;L;ROM;1853-01-28;Lucy Snowe leaves England to teach at a girls' school in the fictional town of Villette.;https://picsum.photos/seed/bk0006/200/300
+7;BK-0007;Shirley;Charlotte Brontë;25;2;8.50;GBP;3.4;A;ROM;1849-10-26;Set during the Luddite unrest in Yorkshire, two very different women face love and social change.;https://picsum.photos/seed/bk0007/200/300
+8;BK-0008;The Tell-Tale Heart;Edgar Allan Poe;7;3;6.75;USD;4.4;L;HOR;1843-01-01;A narrator insists on his sanity while describing a murder he committed and the beating heart he cannot stop hearing.;https://picsum.photos/seed/bk0008/200/300
+9;BK-0009;The Fall of the House of Usher;Edgar Allan Poe;0;3;7.20;USD;4.1;O;HOR;1839-09-01;A visitor watches his childhood friend Roderick Usher and the family mansion slowly decay together.;https://picsum.photos/seed/bk0009/200/300
+10;BK-0010;Catweazle and the Magic Zodiac;Richard Carpenter;18;4;19.90;EUR;3.8;A;FAN;1971-01-01;Catweazle returns and searches for the twelve signs of the zodiac to open his way home.;https://picsum.photos/seed/bk0010/200/300

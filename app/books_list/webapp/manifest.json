@@ -3,7 +3,13 @@
   "sap.app": {
     "id": "bookslist",
     "type": "application",
-    "i18n": "i18n/i18n.properties",
+    "i18n": {
+      "bundleUrl": "i18n/i18n.properties",
+      "supportedLocales": [
+        ""
+      ],
+      "fallbackLocale": ""
+    },
     "applicationVersion": {
       "version": "0.0.1"
     },
@@ -17,7 +23,7 @@
     },
     "dataSources": {
       "mainService": {
-        "uri": "/odata/v4/catalog/",
+        "uri": "/odata/v4/admin/",
         "type": "OData",
         "settings": {
           "annotations": [],
@@ -49,7 +55,8 @@
       "libs": {
         "sap.m": {},
         "sap.ui.core": {},
-        "sap.fe.templates": {}
+        "sap.fe.templates": {},
+        "sap.suite.ui.microchart": {}
       }
     },
     "contentDensities": {
@@ -60,7 +67,11 @@
       "i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
         "settings": {
-          "bundleName": "bookslist.i18n.i18n"
+          "bundleName": "bookslist.i18n.i18n",
+          "supportedLocales": [
+            ""
+          ],
+          "fallbackLocale": ""
         }
       },
       "": {
@@ -74,7 +85,13 @@
       },
       "@i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
-        "uri": "i18n/i18n.properties"
+        "uri": "i18n/i18n.properties",
+        "settings": {
+          "supportedLocales": [
+            ""
+          ],
+          "fallbackLocale": ""
+        }
       }
     },
     "resources": {
@@ -92,6 +109,21 @@
           "pattern": "Books({key}):?query:",
           "name": "BooksObjectPage",
           "target": "BooksObjectPage"
+        },
+        {
+          "pattern": "Authors:?query:",
+          "name": "AuthorsList",
+          "target": "AuthorsList"
+        },
+        {
+          "pattern": "Authors({key}):?query:",
+          "name": "AuthorsObjectPage",
+          "target": "AuthorsObjectPage"
+        },
+        {
+          "pattern": "Authors({key})/books({key2}):?query:",
+          "name": "AuthorBooksObjectPage",
+          "target": "AuthorBooksObjectPage"
         }
       ],
       "targets": {
@@ -113,9 +145,30 @@
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
                   "tableSettings": {
-                    "type": "ResponsiveTable"
+                    "type": "ResponsiveTable",
+                    "selectionMode": "Multi",
+                    "enableExport": true,
+                    "condensedTableLayout": true
                   }
                 }
+              },
+              "initialLoad": "Enabled",
+              "views": {
+                "paths": [
+                  {
+                    "key": "all",
+                    "annotationPath": "com.sap.vocabularies.UI.v1.SelectionPresentationVariant#all"
+                  },
+                  {
+                    "key": "inStock",
+                    "annotationPath": "com.sap.vocabularies.UI.v1.SelectionPresentationVariant#inStock"
+                  },
+                  {
+                    "key": "outOfStock",
+                    "annotationPath": "com.sap.vocabularies.UI.v1.SelectionPresentationVariant#outOfStock"
+                  }
+                ],
+                "showCounts": true
               }
             }
           }
@@ -128,6 +181,54 @@
             "settings": {
               "editableHeaderContent": false,
               "contextPath": "/Books"
+            }
+          }
+        },
+        "AuthorsObjectPage": {
+          "type": "Component",
+          "id": "AuthorsObjectPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "editableHeaderContent": false,
+              "contextPath": "/Authors",
+              "navigation": {
+                "books": {
+                  "detail": {
+                    "route": "AuthorBooksObjectPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "AuthorBooksObjectPage": {
+          "type": "Component",
+          "id": "AuthorBooksObjectPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "editableHeaderContent": false,
+              "contextPath": "/Authors/books"
+            }
+          }
+        },
+        "AuthorsList": {
+          "type": "Component",
+          "id": "AuthorsList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "contextPath": "/Authors",
+              "variantManagement": "None",
+              "initialLoad": "Enabled",
+              "navigation": {
+                "Authors": {
+                  "detail": {
+                    "route": "AuthorsObjectPage"
+                  }
+                }
+              }
             }
           }
         }
