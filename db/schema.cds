@@ -43,7 +43,11 @@ entity Authors : managed {
 
 // code lists: code + name + descr (localized) from sap.common.CodeList
 entity Genres : CodeList {
-  key code : String(10);
+  key code     : String(10);
+      // hierarchy: a genre can have a parent genre (Fiction > Speculative > Fantasy).
+      // Used by the tree tables in app/books-freestyle; other apps simply ignore it.
+      parent   : Association to Genres;                              // managed -> adds parent_code
+      children : Association to many Genres on children.parent = $self; // backlink, no column
 }
 
 entity BookStatus : CodeList {

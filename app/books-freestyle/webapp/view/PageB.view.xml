@@ -1,0 +1,280 @@
+<!--
+  PAGE B — BUILDING BLOCKS (sap.fe.macros) on OData V4 (/odata/v4/freestyle)
+  This view is an FPM CUSTOM PAGE (manifest target name "sap.fe.core.fpm"). Before the view is created,
+  Fiori elements runs the XML TEMPLATING: every <macros:...> tag is expanded into real controls
+  (sap.ui.mdc.FilterBar, sap.ui.mdc.Table, sap.ui.mdc.Chart, ...) using the V4 metadata + annotations
+  found at contextPath + metaPath.
+    contextPath = the entity set ("/Books")
+    metaPath    = the annotation to render, relative to contextPath ("@com.sap.vocabularies.UI.v1.LineItem")
+  The same three sections as Page A, so you can compare 1:1.
+  [WHY no visible= on building blocks] wrap them in a VBox and toggle the VBox — building blocks
+  have their own (templating-time) properties, not all control properties.
+-->
+<mvc:View
+	controllerName="booksfreestyle.controller.PageB"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:f="sap.f"
+	xmlns:core="sap.ui.core"
+	xmlns:macros="sap.fe.macros"
+	xmlns:macrosTable="sap.fe.macros.table"
+	xmlns:macrosFilterBar="sap.fe.macros.filterBar"
+	xmlns:control="booksfreestyle.control"
+	height="100%">
+
+	<f:DynamicPage id="pageB" toggleHeaderOnTitleClick="true" fitContent="false">
+		<f:title>
+			<f:DynamicPageTitle id="pageBTitle">
+				<f:heading>
+					<FlexBox id="pageBHeadingBox" alignItems="Center">
+						<Button id="pageBBack" icon="sap-icon://nav-back" type="Transparent" press=".onNavBack" tooltip="{i18n>back}"/>
+						<!--
+						  [WHAT] macros:VariantManagement = PAGE VARIANT for the controls listed in "for"
+						         (filter bar + table(s) + chart). Same idea as SmartVariantManagement on Page A.
+						  [WHAT] for        comma-separated ids of the building blocks it manages
+						  [WHAT] showSetAsDefault  'Set as Default' in 'Manage Views'
+						  [TRY]  remove tblBooksGrid from "for" -> the grid table's settings are no longer saved in the view
+						-->
+						<VBox id="vmBooksBox" visible="{= ${view>/section} === 'books' }">
+							<macros:VariantManagement id="vmBooks" for="fbBooks,tblBooks,tblBooksGrid" showSetAsDefault="true"/>
+						</VBox>
+						<VBox id="vmSalesBox" visible="{= ${view>/section} === 'sales' }">
+							<macros:VariantManagement id="vmSales" for="fbSales,chartSales,tblSales"/>
+						</VBox>
+						<Title id="pageBTreeTitle" text="{i18n>sectionTree}" visible="{= ${view>/section} === 'tree' }"/>
+					</FlexBox>
+				</f:heading>
+				<f:expandedContent>
+					<Text id="pageBSubtitle" text="{i18n>pageBSubtitle}"/>
+				</f:expandedContent>
+				<f:actions>
+					<SegmentedButton id="pageBSection" selectedKey="{view>/section}">
+						<items>
+							<SegmentedButtonItem id="segBBooks" key="books" text="{i18n>sectionBooks}" icon="sap-icon://course-book"/>
+							<SegmentedButtonItem id="segBSales" key="sales" text="{i18n>sectionSales}" icon="sap-icon://bar-chart"/>
+							<SegmentedButtonItem id="segBTree" key="tree" text="{i18n>sectionTree}" icon="sap-icon://tree"/>
+						</items>
+					</SegmentedButton>
+					<!--
+					  [WHAT] macros:MessageButton: the Fiori elements message button. It shows the messages of
+					         this page (V4 backend + validation), hides itself when there are none.
+					  [WHY]  Page A needs our own MessagePopover code (BaseController.onMessagePopoverPress) for that
+					-->
+					<macros:MessageButton id="pageBMessages"/>
+				</f:actions>
+			</f:DynamicPageTitle>
+		</f:title>
+
+		<f:header>
+			<f:DynamicPageHeader id="pageBHeader" pinnable="true">
+				<VBox id="pageBHeaderBox">
+					<!--
+					  =========== macros:FilterBar for Books ===========
+					  [WHAT] metaPath  @UI.SelectionFields -> the visible filters; 'Adapt Filters' offers all others
+					  [WHAT] liveMode  false = 'Go' button  [TRY] liveMode="true" -> search on every change
+					         (templating-time setting: change it here and reload; Page A can switch it at runtime)
+					  [WHAT] showClearButton  'Clear' next to 'Go'
+					  [WHAT] search / filterChanged  events -> controller
+					  Value helps (F4 + dropdowns), texts, the 'Search' field (@cds.search) come from the annotations.
+					-->
+					<VBox id="fbBooksBox" visible="{= ${view>/section} === 'books' }">
+						<FlexBox id="pageBOptions" alignItems="Center" justifyContent="End">
+							<!-- [WHAT] a plain sap.m.Switch that changes the table request in beforeRebindTable -->
+							<Label id="pageBHideDiscLabel" text="Hide discontinued" labelFor="pageBHideDisc" class="sapUiTinyMarginEnd"/>
+							<Switch id="pageBHideDisc" state="{view>/hideDiscontinued}" change=".onHideDiscontinuedChange"/>
+						</FlexBox>
+						<macros:FilterBar id="fbBooks"
+							contextPath="/Books"
+							metaPath="@com.sap.vocabularies.UI.v1.SelectionFields"
+							liveMode="false"
+							showClearButton="true"
+							search=".onSearchBooks"
+							filterChanged=".onFilterChangedBooks">
+							<!--
+							  [WHAT] CUSTOM filter field: any control as the template. It writes into the filter
+							         conditions through the special model "filterValues" + type sap.fe.macros.filter.type.Value.
+							         operator GE -> condition "stock >= value" -> $filter=stock ge 20
+							  [WHAT] key / property  name of the filter + the property it filters
+							  [WHAT] anchor + placement  position next to another filter (by its key)
+							  Compare Page A: there the custom field needs code in beforeRebindTable + variant handlers.
+							  [TRY]  change operator to 'LE' -> "maximum stock"
+							-->
+							<macros:filterFields>
+								<macrosFilterBar:FilterField id="ffMinStock" key="minStock" label="{i18n>filterMinStock}"
+									property="stock" anchor="price" placement="After">
+									<StepInput id="ffMinStockInput" min="0" max="1000" step="5"
+										value="{path: 'filterValues>', type: 'sap.fe.macros.filter.type.Value', formatOptions: { operator: 'GE' }}"/>
+								</macrosFilterBar:FilterField>
+							</macros:filterFields>
+						</macros:FilterBar>
+					</VBox>
+
+					<!-- =========== macros:FilterBar for Sales =========== -->
+					<VBox id="fbSalesBox" visible="{= ${view>/section} === 'sales' }">
+						<macros:FilterBar id="fbSales"
+							contextPath="/BookSalesAnalytics"
+							metaPath="@com.sap.vocabularies.UI.v1.SelectionFields"
+							showClearButton="true"/>
+					</VBox>
+				</VBox>
+			</f:DynamicPageHeader>
+		</f:header>
+
+		<f:content>
+			<VBox id="pageBContent">
+
+				<!-- =========================== BOOKS =========================== -->
+				<VBox id="booksSectionB" visible="{= ${view>/section} === 'books' }">
+					<SegmentedButton id="pageBTableType" selectedKey="{view>/tableType}" class="sapUiSmallMarginBegin sapUiTinyMarginTop">
+						<items>
+							<SegmentedButtonItem id="segBResp" key="responsive" text="{i18n>tableResponsive}"/>
+							<SegmentedButtonItem id="segBGrid" key="grid" text="{i18n>tableGrid}"/>
+						</items>
+					</SegmentedButton>
+
+					<!--
+					  =========== macros:Table, ResponsiveTable ===========
+					  [WHAT] metaPath     @UI.LineItem -> columns + the 'Add Stock' action (DataFieldForAction)
+					  [WHAT] filterBar    id of the macros:FilterBar ('Go' -> rebind)
+					  [WHAT] type         ResponsiveTable | GridTable | AnalyticalTable | TreeTable
+					  [WHAT] personalization  which tabs the settings dialog has [TRY] "Column,Sort" -> no Filter/Group tab
+					  [WHAT] enableExport  'Export' button (incl. 'Export As...')
+					  [WHAT] enableFullScreen  full-screen button
+					  [WHAT] isSearchable  false: no search field in the table toolbar (we have one in the filter bar)
+					  [WHAT] selectionMode  Multi: checkboxes; needed for actions with requiresSelection
+					  [WHAT] ignoredFields  never offered as a column
+					  [WHAT] popinLayout  how popin rows look on small screens (GridSmall / Block / GridLarge)
+					  [WHAT] initialLoad  load data right away (default in a custom page: wait for 'Go')
+					  [WHAT] beforeRebindTable  hook before each request (like SmartTable's beforeRebindTable)
+					  [NOTE] columns with UI.Importance #Medium/#Low are hidden behind the 'Show Details' toolbar
+					         button of the ResponsiveTable (Fiori elements behaviour; SmartTable shows them)
+					  [WHAT] selectionChange  -> enable our custom action
+					  [WHAT] row navigation: a row press goes to Detail B AUTOMATICALLY, because the manifest
+					         target PageB has  navigation: { Books: { detail: { route: "DetailB" } } }  — no code
+					  [TRY]  remove the "navigation" block from manifest.json -> rows are no longer clickable
+					-->
+					<macros:Table id="tblBooks"
+						contextPath="/Books"
+						metaPath="@com.sap.vocabularies.UI.v1.LineItem"
+						filterBar="fbBooks"
+						type="ResponsiveTable"
+						header="{i18n>booksTableHeader}"
+						headerVisible="true"
+						personalization="Column,Sort,Filter,Group"
+						enableExport="true"
+						exportFileName="Books"
+						enableFullScreen="true"
+						isSearchable="false"
+						selectionMode="Multi"
+						ignoredFields="author,coverUrl,descr"
+						popinLayout="GridSmall"
+						initialLoad="true"
+						beforeRebindTable=".onBeforeRebindBooks"
+						selectionChange=".onSelectionChangeBooks"
+						visible="{= ${view>/tableType} === 'responsive' }">
+						<!--
+						  [WHAT] CUSTOM ACTION: a toolbar button with our own handler.
+						         requiresSelection: enabled only if rows are selected (no code needed)
+						         anchor/placement: next to the annotated 'Add Stock' action
+						-->
+						<macros:actions>
+							<macrosTable:Action id="actOpenSelected" key="openSelected" text="{i18n>actionOpenSelected}"
+								press=".onOpenSelected" requiresSelection="true"
+								anchor="DataFieldForAction::FreestyleService.addStock" placement="After"/>
+						</macros:actions>
+						<!--
+						  [WHAT] CUSTOM COLUMN with our RatingStars control.
+						         anchor/placement: after the 'Rating' column (key DataField::rating)
+						         properties="rating": the column "uses" rating -> it's requested ($select), sortable, exported
+						         importance="High": always visible (not hidden behind 'Show Details')
+						-->
+						<macros:columns>
+							<macrosTable:Column id="colStarsB" key="stars" header="{i18n>colStars}" width="8rem"
+								anchor="DataField::rating" placement="After" properties="rating" horizontalAlign="Center"
+								importance="High">
+								<control:RatingStars id="cellStarsB" value="{rating}"/>
+							</macrosTable:Column>
+						</macros:columns>
+					</macros:Table>
+
+					<!-- =========== macros:Table, GridTable =========== -->
+					<macros:Table id="tblBooksGrid"
+						contextPath="/Books"
+						metaPath="@com.sap.vocabularies.UI.v1.LineItem"
+						filterBar="fbBooks"
+						type="GridTable"
+						header="{i18n>booksGridHeader}"
+						personalization="Column,Sort,Filter,Group"
+						enableExport="true"
+						frozenColumnCount="1"
+						rowCountMode="Auto"
+						selectionMode="Multi"
+						ignoredFields="author,coverUrl,descr"
+						initialLoad="true"
+						beforeRebindTable=".onBeforeRebindBooks"
+						visible="{= ${view>/tableType} === 'grid' }"/>
+				</VBox>
+
+				<!-- =========================== SALES =========================== -->
+				<VBox id="salesSectionB" visible="{= ${view>/section} === 'sales' }">
+					<!--
+					  =========== macros:Chart ===========
+					  [WHAT] metaPath  @UI.Chart (default chart: Revenue by Region, column)
+					  [WHAT] filterBar  chart follows the sales filter bar
+					  [WHAT] personalization  Type (chart type), Item (dimensions/measures), Sort
+					  [WHAT] selectionMode  Multiple: select several bars -> selectionChange
+					  The chart toolbar offers drilldown ('View By'), legend, zoom, details, full screen.
+					  It needs Aggregation.ApplySupported + CustomAggregate (annotations.cds, section 4).
+					-->
+					<macros:Chart id="chartSales"
+						contextPath="/BookSalesAnalytics"
+						metaPath="@com.sap.vocabularies.UI.v1.Chart"
+						filterBar="fbSales"
+						header="{i18n>salesChartHeader}"
+						personalization="Type,Item,Sort"
+						selectionMode="Multiple"
+						selectionChange=".onChartSelectionChange"/>
+
+					<!--
+					  =========== macros:Table, AnalyticalTable ===========
+					  [WHAT] type="AnalyticalTable"  group by + totals via $apply (needs ApplySupported)
+					  [WHAT] personalization "...,Aggregate": the 'Group' and 'Aggregate' (totals) tabs
+					-->
+					<macros:Table id="tblSales"
+						contextPath="/BookSalesAnalytics"
+						metaPath="@com.sap.vocabularies.UI.v1.LineItem"
+						filterBar="fbSales"
+						type="AnalyticalTable"
+						header="{i18n>salesTableHeader}"
+						personalization="Column,Sort,Filter,Group,Aggregate"
+						enableExport="true"
+						rowCountMode="Fixed"
+						rowCount="10"
+						initialLoad="true"
+						selectionMode="None"/>
+				</VBox>
+
+				<!-- =========================== TREE =========================== -->
+				<VBox id="treeSectionB" visible="{= ${view>/section} === 'tree' }">
+					<!--
+					  =========== macros:TreeTable ===========
+					  [WHAT] hierarchyQualifier  the qualifier of @Hierarchy.RecursiveHierarchy that CAP generated
+					         from @hierarchy on GenreTree: "<EntityName>Hierarchy" = "GenreTreeHierarchy"
+					  Requests: $apply=com.sap.vocabularies.Hierarchy.v1.TopLevels(...) — answered by CAP
+					  [TRY]  look at /odata/v4/freestyle/$metadata and search for RecursiveHierarchy
+					-->
+					<macros:TreeTable id="tblTree"
+						contextPath="/GenreTree"
+						metaPath="@com.sap.vocabularies.UI.v1.LineItem"
+						hierarchyQualifier="GenreTreeHierarchy"
+						header="{i18n>treeTableHeader}"
+						personalization="Column,Sort"
+						rowCountMode="Fixed"
+						rowCount="12"
+						initialLoad="true"
+						selectionMode="Single"/>
+				</VBox>
+			</VBox>
+		</f:content>
+	</f:DynamicPage>
+</mvc:View>

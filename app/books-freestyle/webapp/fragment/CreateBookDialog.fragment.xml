@@ -1,0 +1,76 @@
+<!--
+  CREATE BOOK dialog (Page A). Loaded with this.loadFragment({ name: "booksfreestyle.fragment.CreateBookDialog" }).
+  [WHAT] a fragment = a piece of view without its own controller: event handlers ('.onCreateConfirm')
+         are looked up in the controller of the view that loads it (PageA.controller.js)
+  [WHAT] models:  "create" = JSONModel with the form data + value states (set in onOpenCreateDialog)
+                  ""       = OData V2 model (for the Genre and Currency dropdowns)
+  Freestyle validation: everything is checked in JS (_validateCreate) — no annotations involved.
+-->
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core"
+	xmlns:form="sap.ui.layout.form"
+	xmlns:control="booksfreestyle.control">
+	<!-- [WHAT] contentWidth: fixed width on desktop; on phones the dialog is full screen (stretch via expression) -->
+	<Dialog id="createDialog" title="{i18n>createTitle}" contentWidth="32rem" stretch="{device>/system/phone}"
+		type="Standard" draggable="true" resizable="true">
+		<content>
+			<!--
+			  [WHAT] SimpleForm with ResponsiveGridLayout: label left / field right on desktop, stacked on phone
+			  [TRY]  layout="ColumnLayout" -> a different form layout
+			-->
+			<form:SimpleForm id="createForm" editable="true" layout="ResponsiveGridLayout"
+				labelSpanL="4" labelSpanM="4" labelSpanS="12" columnsL="1" columnsM="1">
+				<form:content>
+					<!-- [WHAT] required="true" on the Label shows the asterisk; the check itself is in JS -->
+					<Label id="cLblTitle" text="{i18n>createTitleLabel}" required="true" labelFor="cTitle"/>
+					<!--
+					  [WHAT] valueState / valueStateText bound to the "create" model -> red frame + message when invalid
+					  [WHAT] liveChange: validate while typing
+					-->
+					<Input id="cTitle" value="{create>/title}" liveChange=".onCreateLiveChange"
+						valueState="{create>/state/title}" valueStateText="{i18n>createTitleRequired}" maxLength="111"/>
+
+					<Label id="cLblBookNo" text="{i18n>createBookNoLabel}" required="true" labelFor="cBookNo"/>
+					<!-- [WHAT] placeholder = hint text inside the empty input. [TRY] enter "BK-0001" -> backend error (duplicate) -->
+					<Input id="cBookNo" value="{create>/bookNo}" placeholder="BK-0042" liveChange=".onCreateLiveChange"
+						valueState="{create>/state/bookNo}" valueStateText="{i18n>createBookNoInvalid}"/>
+
+					<Label id="cLblGenre" text="{i18n>createGenreLabel}" labelFor="cGenre"/>
+					<!-- [WHAT] Select with items from the V2 model (/Genres), key = code. selectedKey TwoWay into "create" -->
+					<Select id="cGenre" selectedKey="{create>/genre_code}" items="{path: '/Genres', sorter: {path: 'name'}}" forceSelection="false">
+						<core:Item id="cGenreItem" key="{code}" text="{name}"/>
+					</Select>
+
+					<Label id="cLblPrice" text="{i18n>createPriceLabel}" required="true" labelFor="cPrice"/>
+					<!-- [WHAT] StepInput: number with +/- buttons. displayValuePrecision = decimals -->
+					<StepInput id="cPrice" value="{create>/price}" min="0" step="1" displayValuePrecision="2"
+						valueState="{create>/state/price}" valueStateText="{i18n>createPriceInvalid}" change=".onCreateLiveChange"/>
+
+					<Label id="cLblCurrency" text="{i18n>createCurrencyLabel}" labelFor="cCurrency"/>
+					<Select id="cCurrency" selectedKey="{create>/currency_code}" items="{/Currencies}">
+						<core:Item id="cCurrencyItem" key="{code}" text="{code} – {name}"/>
+					</Select>
+
+					<Label id="cLblStock" text="{i18n>createStockLabel}" labelFor="cStock"/>
+					<StepInput id="cStock" value="{create>/stock}" min="0" max="9999"/>
+
+					<Label id="cLblRating" text="{i18n>createRatingLabel}"/>
+					<!-- [WHAT] our custom control in EDIT mode: click a star -> the value changes (TwoWay) -->
+					<control:RatingStars id="cRating" value="{create>/rating}" editable="true" showValue="true"/>
+				</form:content>
+			</form:SimpleForm>
+		</content>
+		<!--
+		  [WHAT] beginButton/endButton: the dialog footer buttons.
+		  [WHAT] enabled via expression binding: only when title and bookNo are filled
+		-->
+		<beginButton>
+			<Button id="cOk" text="{i18n>create}" type="Emphasized" press=".onCreateConfirm"
+				enabled="{= !!${create>/title} &amp;&amp; !!${create>/bookNo} }"/>
+		</beginButton>
+		<endButton>
+			<Button id="cCancel" text="{i18n>cancel}" press=".onCreateCancel"/>
+		</endButton>
+	</Dialog>
+</core:FragmentDefinition>

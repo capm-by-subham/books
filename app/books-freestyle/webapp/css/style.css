@@ -1,0 +1,36 @@
+/* App-specific styles. Keep them small: the theme (sap_horizon) does most of the work.
+   Use theme parameters (var(--sap...)) instead of fixed colours, so dark themes work too.
+   [TRY] open index.html?sap-theme=sap_horizon_dark -> the stars and tiles adapt */
+
+/* ---- RatingStars custom control (control/RatingStars.js) ---- */
+.bfRatingStars {
+	display: inline-flex;
+	gap: 0.0625rem;
+	font-size: 1rem;
+	line-height: 1;
+	white-space: nowrap;
+}
+.bfRatingStars .bfStar { color: var(--sapContent_DisabledTextColor); }
+.bfRatingStars .bfStarOn { color: var(--sapCriticalColor); }
+.bfRatingStars.bfEditable .bfStar { cursor: pointer; }
+.bfRatingStars.bfEditable .bfStar:hover { transform: scale(1.2); }
+.bfRatingStars .bfRatingValue {
+	margin-left: 0.375rem;
+	font-size: 0.75rem;
+	color: var(--sapContent_LabelColor);
+}
+
+/* ---- Home page ---- */
+.bfTile { margin: 0 1rem 1rem 0; }
+.bfKpi {
+	min-width: 10rem;
+	padding: 1rem;
+	border-radius: var(--sapElement_BorderCornerRadius);
+	background: var(--sapTile_Background);
+	box-shadow: var(--sapContent_Shadow0);
+}
+.bfKpiValue {
+	font-size: 2rem;
+	font-weight: bold;
+	color: var(--sapTile_TitleTextColor);
+}

@@ -1,0 +1,185 @@
+<!--
+  DETAIL A — one book with SmartForm + SmartField on OData V2.
+  Route: #/classic/book/{id}  (from a row press on Page A)
+  The DynamicPage gets the V2 model as default model and is bound to /Books(<id>) in DetailA.controller.js.
+
+  SmartField = an "intelligent" field: it reads the property's metadata + annotations and picks the right control:
+    Edm.String -> Input, Edm.Date -> DatePicker, Common.ValueList -> Input with F4, ValueListWithFixedValues -> Select,
+    Measures.ISOCurrency -> amount + currency fields, Common.SemanticObject -> SmartLink (display mode),
+    @mandatory -> required + asterisk, @readonly/@Core.Computed -> always display, UI.MultiLineText -> TextArea
+  Edit/display is switched with ONE property: SmartForm editable="{view>/editMode}".
+-->
+<mvc:View
+	controllerName="booksfreestyle.controller.DetailA"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:f="sap.f"
+	xmlns:core="sap.ui.core"
+	xmlns:smartForm="sap.ui.comp.smartform"
+	xmlns:smartField="sap.ui.comp.smartfield"
+	xmlns:control="booksfreestyle.control"
+	height="100%">
+
+	<!-- [WHAT] showFooter: the footer (Save/Cancel) is visible only in edit mode -->
+	<f:DynamicPage id="detailA" showFooter="{view>/editMode}" busy="{view>/busy}" busyIndicatorDelay="0"
+		toggleHeaderOnTitleClick="true">
+		<f:title>
+			<f:DynamicPageTitle id="detailATitle">
+				<f:heading>
+					<FlexBox id="detailAHeadingBox" alignItems="Center">
+						<Button id="detailABack" icon="sap-icon://nav-back" type="Transparent" press=".onNavBack" tooltip="{i18n>back}"/>
+						<Title id="detailAHeading" text="{title}" wrapping="true"/>
+					</FlexBox>
+				</f:heading>
+				<f:expandedContent>
+					<Text id="detailAExpanded" text="{i18n>detailATitle}"/>
+				</f:expandedContent>
+				<!-- [WHAT] snapped: shown when the header is collapsed -> author + status in the title bar -->
+				<f:snappedContent>
+					<ObjectStatus id="detailASnappedStatus" text="{statusName}"
+						state="{path: 'statusCriticality', formatter: '.formatter.criticalityToState'}"/>
+				</f:snappedContent>
+				<f:actions>
+					<!-- [WHAT] Edit only in display mode; expression binding with "!" -->
+					<Button id="detailAEdit" text="{i18n>edit}" type="Emphasized" press=".onEdit" visible="{= !${view>/editMode} }"/>
+					<Button id="detailAMessages" icon="sap-icon://message-popup" type="Emphasized"
+						text="{= ${message>/}.length }" visible="{= ${message>/}.length > 0 }" press=".onMessagePopoverPress"/>
+				</f:actions>
+			</f:DynamicPageTitle>
+		</f:title>
+
+		<f:header>
+			<f:DynamicPageHeader id="detailAHeader" pinnable="true">
+				<!-- [WHAT] FlexBox with wrap: avatar + key facts side by side, wrap on phones -->
+				<FlexBox id="detailAHeaderBox" wrap="Wrap" alignItems="Start">
+					<!-- [WHAT] Avatar shows the cover (or an icon via formatter when there is no cover URL) -->
+					<Avatar id="detailACover" src="{path: 'coverUrl', formatter: '.formatter.coverSrc'}"
+						displaySize="L" displayShape="Square" imageFitType="Cover" class="sapUiMediumMarginEnd"/>
+					<VBox id="detailAFacts" class="sapUiMediumMarginEnd">
+						<Label id="detailAAuthorLbl" text="Author"/>
+						<Text id="detailAAuthor" text="{authorName}"/>
+						<Label id="detailAGenreLbl" text="Genre" class="sapUiSmallMarginTop"/>
+						<Text id="detailAGenre" text="{genreName}"/>
+					</VBox>
+					<VBox id="detailAFacts2" class="sapUiMediumMarginEnd">
+						<Label id="detailAStockLbl" text="Stock"/>
+						<!-- [WHAT] ObjectNumber with a state from a formatter (red/orange/green) -->
+						<ObjectNumber id="detailAStock" number="{stock}" unit="pcs"
+							state="{path: 'stock', formatter: '.formatter.stockState'}"/>
+						<Label id="detailARatingLbl" text="{i18n>fieldRating}" class="sapUiSmallMarginTop"/>
+						<control:RatingStars id="detailARating" value="{rating}" showValue="true"/>
+					</VBox>
+				</FlexBox>
+			</f:DynamicPageHeader>
+		</f:header>
+
+		<f:content>
+			<!--
+			  [WHAT] SmartForm
+			         editable          display <-> edit for ALL SmartFields at once
+			         editTogglable     [TRY] set to "true" -> the SmartForm shows its own Edit button (we use our own)
+			         validationMode    Async: SmartField validation (type, mandatory) returns promises -> check() is async
+			         title             form title
+			         checkButton       [TRY] "true" -> a 'Check' button that validates all fields
+			-->
+			<smartForm:SmartForm id="sfBook" editable="{view>/editMode}" editTogglable="false"
+				validationMode="Async" title="{i18n>detailATitle}" class="sapUiResponsiveContentPadding">
+				<!-- [WHAT] ColumnLayout: groups flow into 1-3 columns depending on width -->
+				<smartForm:layout>
+					<smartForm:ColumnLayout id="sfBookLayout" columnsM="2" columnsL="3" columnsXL="3"/>
+				</smartForm:layout>
+
+				<!--
+				  [WHAT] Group = one form section; GroupElement = one row (label + field)
+				  The label comes from @title (Common.Label) — no text needed here.
+				  These groups mirror UI.FieldGroup #General / #Pricing / #Description, which Page B renders automatically.
+				-->
+				<smartForm:Group id="grpGeneral" label="{i18n>groupGeneral}">
+					<smartForm:GroupElement id="geBookNo">
+						<!-- [WHAT] @mandatory -> asterisk; @Common.SemanticObject -> SmartLink in display mode (click it!) -->
+						<smartField:SmartField id="fBookNo" value="{bookNo}"/>
+					</smartForm:GroupElement>
+					<smartForm:GroupElement id="geTitle">
+						<smartField:SmartField id="fTitle" value="{title}"/>
+					</smartForm:GroupElement>
+					<!--
+					  [WHAT] Author: a FREESTYLE ComboBox instead of a SmartField.
+					  [WHY]  the V2 metadata HAS Common.ValueList on writer_ID (the SmartFilterBar on Page A offers F4 for it),
+					         but SmartField (UI5 1.153) renders NO value help for this Edm.Int32 key — only a number input
+					         showing "2". Value helps on Edm.String codes (genre_code, status_code, currency_code) work.
+					         Freestyle lets us fill such gaps with any control.
+					  [WHAT] selectedKey with type Int32: the ComboBox works with string keys ("2"), the type converts
+					         them back to a number for the model (TwoWay) -> PATCH sends writer_ID: 2
+					  [TRY]  replace it with <smartField:SmartField value="{writer_ID}"/> and switch to edit mode
+					-->
+					<smartForm:GroupElement id="geWriter" label="Author">
+						<!-- display mode: plain text; edit mode: ComboBox (a GroupElement can hold several controls) -->
+						<Text id="fWriterText" text="{authorName}" visible="{= !${view>/editMode} }"/>
+						<ComboBox id="fWriter" visible="{view>/editMode}" width="100%"
+							selectedKey="{path: 'writer_ID', type: 'sap.ui.model.odata.type.Int32'}"
+							items="{path: '/Authors', sorter: {path: 'name'}, length: 500}">
+							<core:Item id="fWriterItem" key="{ID}" text="{name}"/>
+						</ComboBox>
+					</smartForm:GroupElement>
+					<smartForm:GroupElement id="geGenre">
+						<!-- ValueListWithFixedValues -> a Select (dropdown) in edit mode -->
+						<smartField:SmartField id="fGenre" value="{genre_code}"/>
+					</smartForm:GroupElement>
+					<smartForm:GroupElement id="gePublished">
+						<!-- Edm.DateTime (sap:display-format="Date") -> DatePicker -->
+						<smartField:SmartField id="fPublished" value="{publishedAt}"/>
+					</smartForm:GroupElement>
+					<!--
+					  [WHAT] any control can be a field: our RatingStars, editable in edit mode
+					  [WHY]  SmartForm doesn't require SmartFields; label must then be given explicitly
+					-->
+					<smartForm:GroupElement id="geRating" label="{i18n>fieldRating}">
+						<control:RatingStars id="fRating" value="{rating}" editable="{view>/editMode}" showValue="true"/>
+					</smartForm:GroupElement>
+				</smartForm:Group>
+
+				<smartForm:Group id="grpPricing" label="{i18n>groupPricing}">
+					<smartForm:GroupElement id="gePrice">
+						<!-- [WHAT] Measures.ISOCurrency -> amount field + currency field (with value help) side by side -->
+						<smartField:SmartField id="fPrice" value="{price}"/>
+					</smartForm:GroupElement>
+					<smartForm:GroupElement id="geStock">
+						<!-- [WHAT] Measures.Unit 'pcs' -> "12 pcs" -->
+						<smartField:SmartField id="fStock" value="{stock}"/>
+					</smartForm:GroupElement>
+					<smartForm:GroupElement id="geStatus">
+						<smartField:SmartField id="fStatus" value="{status_code}"/>
+					</smartForm:GroupElement>
+					<smartForm:GroupElement id="geStockValue">
+						<!-- @Core.Computed -> always read-only, also in edit mode -->
+						<!-- [WHAT] uomEditable="false": the currency next to the amount is never editable here
+						     [WHY]  stockValue is computed, but its currency (currency_code) is an editable property -->
+						<smartField:SmartField id="fStockValue" value="{stockValue}" uomEditable="false"/>
+					</smartForm:GroupElement>
+				</smartForm:Group>
+
+				<smartForm:Group id="grpDescription" label="{i18n>groupDescription}">
+					<smartForm:GroupElement id="geDescr">
+						<!-- @UI.MultiLineText -> TextArea in edit mode -->
+						<smartField:SmartField id="fDescr" value="{descr}"/>
+					</smartForm:GroupElement>
+					<smartForm:GroupElement id="geAuthor">
+						<!-- @readonly -> never editable -->
+						<smartField:SmartField id="fAuthor" value="{author}"/>
+					</smartForm:GroupElement>
+				</smartForm:Group>
+			</smartForm:SmartForm>
+		</f:content>
+
+		<f:footer>
+			<OverflowToolbar id="detailAFooter">
+				<!-- [WHAT] message button in the footer (standard Fiori position in edit mode) -->
+				<Button id="detailAFooterMsg" icon="sap-icon://message-popup" type="Negative"
+					text="{= ${message>/}.length }" visible="{= ${message>/}.length > 0 }" press=".onMessagePopoverPress"/>
+				<ToolbarSpacer id="detailAFooterSpacer"/>
+				<Button id="detailASave" text="{i18n>save}" type="Emphasized" press=".onSave"/>
+				<Button id="detailACancel" text="{i18n>cancel}" press=".onCancel"/>
+			</OverflowToolbar>
+		</f:footer>
+	</f:DynamicPage>
+</mvc:View>

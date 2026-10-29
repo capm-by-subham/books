@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Standalone start page of the freestyle app: http://localhost:4004/booksfreestyle/index.html
+  (inside the launchpad sandbox it is started from app/launchpad.html instead)
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Books Freestyle</title>
+    <style>
+        html, body, body > div, #container, #container-uiarea { height: 100%; }
+    </style>
+    <!--
+      [WHAT] UI5 bootstrap: loads UI5 1.153.0 from the SAPUI5 CDN (SAPUI5, not OpenUI5: sap.ui.comp and
+             sap.fe.* only exist in SAPUI5)
+      data-sap-ui-theme          [WHAT] Horizon theme            [TRY] sap_horizon_dark
+      data-sap-ui-resource-roots [WHAT] namespace 'booksfreestyle' = this folder (so booksfreestyle/view/Home.view.xml is found)
+      data-sap-ui-on-init        [WHAT] ComponentSupport creates the component declared in <div data-sap-ui-component> below
+      data-sap-ui-flexibility-services
+                                 [WHAT] where sap.ui.fl stores VARIANTS and personalization (SmartVariantManagement,
+                                        SmartTable p13n, macros:VariantManagement, ...)
+                                 [WHY]  standalone there's no launchpad/ABAP layered repository. LocalStorageConnector
+                                        keeps them in the browser's localStorage, so 'Save View' really saves.
+                                 [TRY]  use "SessionStorageConnector" -> variants are gone after closing the tab
+      data-sap-ui-compat-version [WHAT] newest behaviour of all controls
+      data-sap-ui-async          [WHAT] load modules asynchronously (required by sap.fe)
+    -->
+    <script
+        id="sap-ui-bootstrap"
+        src="https://sapui5.hana.ondemand.com/1.153.0/resources/sap-ui-core.js"
+        data-sap-ui-theme="sap_horizon"
+        data-sap-ui-resource-roots='{ "booksfreestyle": "./" }'
+        data-sap-ui-on-init="module:sap/ui/core/ComponentSupport"
+        data-sap-ui-flexibility-services='[{"connector": "LocalStorageConnector"}]'
+        data-sap-ui-compat-version="edge"
+        data-sap-ui-async="true"
+        data-sap-ui-frame-options="trusted"
+    ></script>
+</head>
+<!-- sapUiSizeCompact: compact density (desktop). [TRY] remove it -> bigger, touch-friendly controls -->
+<body class="sapUiBody sapUiSizeCompact" id="content">
+    <!-- data-handle-validation: show type validation errors (e.g. "abc" in a number field) as messages -->
+    <div
+        data-sap-ui-component
+        data-name="booksfreestyle"
+        data-id="container"
+        data-settings='{"id" : "booksfreestyle"}'
+        data-handle-validation="true"
+    ></div>
+</body>
+</html>

@@ -1,0 +1,213 @@
+{
+  "_version": "1.81.0",
+  "sap.app": {
+    "id": "booksfreestyle",
+    "type": "application",
+    "i18n": {
+      "bundleUrl": "i18n/i18n.properties",
+      "supportedLocales": [""],
+      "fallbackLocale": ""
+    },
+    "applicationVersion": {
+      "version": "0.0.1"
+    },
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "resources": "resources.json",
+    "sourceTemplate": {
+      "id": "@sap/generator-fiori:fpm",
+      "version": "1.20.2",
+      "toolsId": "1f6b1c3e-7d0a-4a51-9b77-books-freestyle"
+    },
+    "dataSources": {
+      "mainService": {
+        "uri": "/odata/v4/freestyle/",
+        "type": "OData",
+        "settings": {
+          "annotations": [],
+          "odataVersion": "4.0"
+        }
+      },
+      "v2Service": {
+        "uri": "/odata/v2/freestyle/",
+        "type": "OData",
+        "settings": {
+          "annotations": [],
+          "odataVersion": "2.0"
+        }
+      }
+    },
+    "crossNavigation": {
+      "inbounds": {
+        "BooksFreestyle-display": {
+          "semanticObject": "BooksFreestyle",
+          "action": "display",
+          "title": "{{appTitle}}",
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          }
+        }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "icons": {
+      "icon": "sap-icon://course-book"
+    },
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": true
+    }
+  },
+  "sap.ui5": {
+    "flexEnabled": true,
+    "handleValidation": true,
+    "dependencies": {
+      "minUI5Version": "1.153.0",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {},
+        "sap.f": {},
+        "sap.ui.layout": {},
+        "sap.ui.table": {},
+        "sap.fe.core": {},
+        "sap.fe.macros": {},
+        "sap.ui.comp": {},
+        "sap.chart": {},
+        "sap.viz": {}
+      }
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "booksfreestyle.i18n.i18n",
+          "supportedLocales": [""],
+          "fallbackLocale": ""
+        }
+      },
+      "": {
+        "dataSource": "mainService",
+        "preload": true,
+        "settings": {
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "earlyRequests": true
+        }
+      },
+      "v2": {
+        "dataSource": "v2Service",
+        "type": "sap.ui.model.odata.v2.ODataModel",
+        "preload": false,
+        "settings": {
+          "defaultBindingMode": "TwoWay",
+          "defaultCountMode": "Inline",
+          "useBatch": true,
+          "refreshAfterChange": true
+        }
+      },
+      "@i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "uri": "i18n/i18n.properties",
+        "settings": {
+          "supportedLocales": [""],
+          "fallbackLocale": ""
+        }
+      }
+    },
+    "resources": {
+      "css": [
+        { "uri": "css/style.css" }
+      ]
+    },
+    "routing": {
+      "config": {},
+      "routes": [
+        { "pattern": ":?query:",                 "name": "Home",    "target": "Home" },
+        { "pattern": "classic:?query:",          "name": "PageA",   "target": "PageA" },
+        { "pattern": "classic/book/{id}:?query:", "name": "DetailA", "target": "DetailA" },
+        { "pattern": "blocks:?query:",           "name": "PageB",   "target": "PageB" },
+        { "pattern": "Books({key}):?query:",     "name": "DetailB", "target": "DetailB" }
+      ],
+      "targets": {
+        "Home": {
+          "type": "Component",
+          "id": "Home",
+          "name": "sap.fe.core.fpm",
+          "contextPattern": "",
+          "options": {
+            "settings": {
+              "viewName": "booksfreestyle.view.Home",
+              "contextPath": "/Books"
+            }
+          }
+        },
+        "PageA": {
+          "type": "Component",
+          "id": "PageA",
+          "name": "sap.fe.core.fpm",
+          "contextPattern": "",
+          "options": {
+            "settings": {
+              "viewName": "booksfreestyle.view.PageA",
+              "contextPath": "/Books"
+            }
+          }
+        },
+        "DetailA": {
+          "type": "Component",
+          "id": "DetailA",
+          "name": "sap.fe.core.fpm",
+          "contextPattern": "",
+          "options": {
+            "settings": {
+              "viewName": "booksfreestyle.view.DetailA",
+              "contextPath": "/Books"
+            }
+          }
+        },
+        "PageB": {
+          "type": "Component",
+          "id": "PageB",
+          "name": "sap.fe.core.fpm",
+          "contextPattern": "",
+          "options": {
+            "settings": {
+              "viewName": "booksfreestyle.view.PageB",
+              "contextPath": "/Books",
+              "navigation": {
+                "Books": {
+                  "detail": {
+                    "route": "DetailB"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "DetailB": {
+          "type": "Component",
+          "id": "DetailB",
+          "name": "sap.fe.core.fpm",
+          "options": {
+            "settings": {
+              "viewName": "booksfreestyle.view.DetailB",
+              "contextPath": "/Books"
+            }
+          }
+        }
+      }
+    }
+  },
+  "sap.fiori": {
+    "registrationIds": [],
+    "archeType": "transactional"
+  }
+}

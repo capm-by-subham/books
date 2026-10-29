@@ -1,0 +1,30 @@
+<!--
+  ADD STOCK dialog (Page A). Model "addStock" = { quantity, title } (set in PageA.controller.js onAddStock).
+  On Page B, the same action needs NO dialog code: macros:Table renders the action from UI.DataFieldForAction
+  and Fiori elements builds the parameter dialog from the action's metadata.
+-->
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+	<Dialog id="addStockDialog" title="{i18n>addStockTitle}" contentWidth="20rem">
+		<customHeader>
+			<Bar id="addStockBar">
+				<contentMiddle>
+					<!-- [WHAT] formatted text with a placeholder: i18n text 'Add Stock to "{0}"', {0} = book title -->
+					<Title id="addStockHeading" text="{parts: ['i18n>addStockTitle', 'addStock>/title'], formatter: '.formatMessage'}"/>
+				</contentMiddle>
+			</Bar>
+		</customHeader>
+		<content>
+			<VBox id="addStockBox" class="sapUiSmallMargin">
+				<Label id="addStockLabel" text="{i18n>addStockQuantity}" labelFor="addStockQty" required="true"/>
+				<StepInput id="addStockQty" value="{addStock>/quantity}" min="1" max="1000" width="100%"/>
+			</VBox>
+		</content>
+		<beginButton>
+			<Button id="addStockOk" text="{i18n>addStock}" type="Emphasized" press=".onAddStockConfirm"
+				enabled="{= ${addStock>/quantity} > 0 }"/>
+		</beginButton>
+		<endButton>
+			<Button id="addStockCancel" text="{i18n>cancel}" press=".onAddStockCancel"/>
+		</endButton>
+	</Dialog>
+</core:FragmentDefinition>

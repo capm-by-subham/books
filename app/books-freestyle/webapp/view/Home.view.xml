@@ -1,0 +1,144 @@
+<!--
+  HOME page: starting point with two tiles (Page A / Page B), live KPIs and a list.
+  Freestyle features shown here: DynamicPage, FlexBox + Grid layouts, GenericTile, expression bindings,
+  formatters, a view-state JSONModel ("view") and an app-wide JSONModel ("app").
+  [WHAT] xmlns:...  = XML namespaces: the prefix tells UI5 in which library a control lives
+-->
+<mvc:View
+	controllerName="booksfreestyle.controller.Home"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:f="sap.f"
+	xmlns:l="sap.ui.layout"
+	xmlns:core="sap.ui.core"
+	height="100%">
+	<!-- height="100%": the view fills the NavContainer, so DynamicPage can scroll inside it -->
+
+	<!--
+	  sap.f.DynamicPage: title + collapsible header + scrollable content (+ optional footer)
+	  [WHAT] toggleHeaderOnTitleClick  click the title to collapse/expand the header  [TRY] set to false
+	  [WHAT] preserveHeaderStateOnScroll  keep the header expanded while scrolling  [TRY] true
+	-->
+	<f:DynamicPage id="homePage" toggleHeaderOnTitleClick="true" preserveHeaderStateOnScroll="false" fitContent="false">
+		<f:title>
+			<f:DynamicPageTitle id="homeTitle">
+				<f:heading>
+					<Title id="homeHeading" text="{i18n>homeTitle}" level="H2"/>
+				</f:heading>
+				<!-- [WHAT] snappedContent: shown only when the header is COLLAPSED (scroll down to see it) -->
+				<f:snappedContent>
+					<Text id="homeSnapped" text="{i18n>homeSubtitle}"/>
+				</f:snappedContent>
+				<!-- [WHAT] expandedContent: shown only when the header is EXPANDED -->
+				<f:expandedContent>
+					<Text id="homeExpanded" text="{i18n>homeSubtitle}"/>
+				</f:expandedContent>
+				<f:actions>
+					<!-- [WHAT] busy indicator while the KPIs load: busy="{view>/busy}" -->
+					<Button id="homeRefresh" icon="sap-icon://refresh" text="{i18n>homeRefresh}" press=".onRefresh" type="Transparent"/>
+				</f:actions>
+			</f:DynamicPageTitle>
+		</f:title>
+
+		<f:header>
+			<f:DynamicPageHeader id="homeHeader" pinnable="true">
+				<!-- [WHAT] pinnable: a pin button keeps the header expanded while scrolling -->
+				<FlexBox id="homeKpis" wrap="Wrap" alignItems="Stretch" busy="{view>/busy}" busyIndicatorDelay="0">
+					<!--
+					  [WHAT] FlexBox = CSS flexbox. wrap="Wrap": boxes move to the next line on small screens
+					  [TRY]  direction="Column" -> KPIs stacked vertically
+					-->
+					<VBox id="kpiBooks" class="bfKpi sapUiSmallMarginEnd sapUiSmallMarginBottom">
+						<Label id="kpiBooksLabel" text="{i18n>homeKpiBooks}"/>
+						<Text id="kpiBooksValue" class="bfKpiValue" text="{view>/bookCount}"/>
+					</VBox>
+					<VBox id="kpiStock" class="bfKpi sapUiSmallMarginEnd sapUiSmallMarginBottom">
+						<Label id="kpiStockLabel" text="{i18n>homeKpiStock}"/>
+						<!-- [WHAT] type with formatOptions: 1234 -> "1,234" (locale aware) -->
+						<Text id="kpiStockValue" class="bfKpiValue"
+							text="{path: 'view>/totalStock', type: 'sap.ui.model.type.Integer', formatOptions: {groupingEnabled: true}}"/>
+					</VBox>
+					<VBox id="kpiLow" class="bfKpi sapUiSmallMarginEnd sapUiSmallMarginBottom">
+						<Label id="kpiLowLabel" text="{i18n>homeKpiLow}"/>
+						<!--
+						  [WHAT] EXPRESSION BINDING {= ...}: a small JS-like expression right in the view.
+						         ${view>/lowStockCount} reads a model value. Here: red when > 0, green otherwise.
+						  [TRY]  change "> 0" to "> 5" -> the number turns green
+						-->
+						<ObjectNumber id="kpiLowValue" class="bfKpiValue"
+							number="{view>/lowStockCount}"
+							state="{= ${view>/lowStockCount} > 0 ? 'Error' : 'Success' }"/>
+					</VBox>
+				</FlexBox>
+			</f:DynamicPageHeader>
+		</f:header>
+
+		<f:content>
+			<VBox id="homeContent">
+				<!-- [WHAT] MessageStrip: info box; showIcon adds the "i" -->
+				<MessageStrip id="homeIntro" text="{i18n>homeIntro}" type="Information" showIcon="true" class="sapUiSmallMarginBottom"/>
+
+				<!-- [WHAT] two big tiles. GenericTile = launchpad-style tile, press -> navigate -->
+				<FlexBox id="homeTiles" wrap="Wrap">
+					<GenericTile id="tileA" class="bfTile" header="{i18n>homeTileA}" subheader="{i18n>homeTileASub}"
+						press=".onOpenPageA" frameType="TwoByOne">
+						<TileContent id="tileAContent"
+							footer="{path: 'app>/visits/classic', formatter: '.formatVisits'}">
+							<ImageContent id="tileAImage" src="sap-icon://table-view"/>
+						</TileContent>
+					</GenericTile>
+					<GenericTile id="tileB" class="bfTile" header="{i18n>homeTileB}" subheader="{i18n>homeTileBSub}"
+						press=".onOpenPageB" frameType="TwoByOne">
+						<TileContent id="tileBContent"
+							footer="{path: 'app>/visits/blocks', formatter: '.formatVisits'}">
+							<ImageContent id="tileBImage" src="sap-icon://building"/>
+						</TileContent>
+					</GenericTile>
+				</FlexBox>
+
+				<!--
+				  [WHAT] sap.ui.layout.Grid: 12-column responsive grid. defaultSpan "XL6 L6 M12 S12":
+				         two columns side by side on large screens, one below the other on tablets/phones
+				  [TRY]  defaultSpan="XL4 L4 M6 S12" and resize the browser window
+				-->
+				<l:Grid id="homeGrid" defaultSpan="XL6 L6 M12 S12" class="sapUiSmallMarginTop">
+					<!--
+					  [WHAT] a plain sap.m.List bound directly to the V4 model (default model "").
+					         filters/sorter/parameters in the binding: only books with stock < 10, lowest first.
+					  [WHY]  freestyle = you decide exactly which data a control shows, no annotations needed
+					  [TRY]  change value1: 10 to value1: 100 -> more books appear
+					-->
+					<List id="lowStockList" headerText="{i18n>homeLowStockTitle}" noDataText="{i18n>homeLowStockEmpty}"
+						items="{
+							path: '/Books',
+							parameters: { $select: 'ID,title,stock,authorName,statusCriticality' },
+							filters: [{ path: 'stock', operator: 'LT', value1: 10 }],
+							sorter: { path: 'stock' }
+						}">
+						<!-- [WHAT] type="Navigation": arrow + press event -> Detail B -->
+						<ObjectListItem id="lowStockItem" title="{title}" type="Navigation" press=".onLowStockPress"
+							number="{stock}" numberUnit="pcs"
+							numberState="{path: 'stock', formatter: '.formatter.stockState'}">
+							<attributes>
+								<ObjectAttribute id="lowStockAuthor" text="{authorName}"/>
+							</attributes>
+							<firstStatus>
+								<ObjectStatus id="lowStockStatus" icon="{path: 'stock', formatter: '.formatter.stockIcon'}"
+									state="{path: 'statusCriticality', formatter: '.formatter.criticalityToState'}"/>
+							</firstStatus>
+						</ObjectListItem>
+					</List>
+
+					<!-- [WHAT] a hand-written comparison card (static texts, but i18n + layout data) -->
+					<Panel id="homeCompare" headerText="Page A vs. Page B" expandable="true" expanded="true">
+						<VBox id="homeCompareBox">
+							<ObjectStatus id="cmpA" title="Page A" text="sap.ui.comp: SmartFilterBar, SmartTable, SmartChart, SmartForm, SmartVariantManagement" state="Information"/>
+							<ObjectStatus id="cmpB" title="Page B" text="sap.fe.macros: FilterBar, Table, Chart, Form, Field, VariantManagement" state="Success" class="sapUiTinyMarginTop"/>
+							<ObjectStatus id="cmpBoth" title="Both" text="annotations from app/books-freestyle/annotations.cds" class="sapUiTinyMarginTop"/>
+						</VBox>
+					</Panel>
+				</l:Grid>
+			</VBox>
+		</f:content>
+	</f:DynamicPage>
+</mvc:View>

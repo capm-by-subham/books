@@ -1,0 +1,89 @@
+<!--
+  DETAIL B — one book with macros:Form + macros:Field on OData V4.
+  Route: #/Books(3)  — FE binds this page AUTOMATICALLY to /Books(3) (route pattern "Books({key})" +
+  contextPath "/Books"), so there's no bindElement code in the controller (compare DetailA.controller.js).
+  Edit mode is managed by the FE "editFlow" controller extension and stored in the "ui" model:
+    {ui>/isEditable}  true in edit mode — every macros:Field / Form switches by itself.
+-->
+<mvc:View
+	controllerName="booksfreestyle.controller.DetailB"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:f="sap.f"
+	xmlns:macros="sap.fe.macros"
+	xmlns:control="booksfreestyle.control"
+	height="100%">
+
+	<!-- [WHAT] footer only in edit mode, driven by FE's ui model -->
+	<f:DynamicPage id="detailB" showFooter="{ui>/isEditable}" toggleHeaderOnTitleClick="true">
+		<f:title>
+			<f:DynamicPageTitle id="detailBTitle">
+				<f:heading>
+					<FlexBox id="detailBHeadingBox" alignItems="Center">
+						<Button id="detailBBack" icon="sap-icon://nav-back" type="Transparent" press=".onNavBack" tooltip="{i18n>back}"/>
+						<Title id="detailBHeading" text="{title}" wrapping="true"/>
+					</FlexBox>
+				</f:heading>
+				<f:expandedContent>
+					<Text id="detailBExpanded" text="{i18n>detailBTitle}"/>
+				</f:expandedContent>
+				<f:actions>
+					<Button id="detailBEdit" text="{i18n>edit}" type="Emphasized" press=".onEdit" visible="{= !${ui>/isEditable} }"/>
+					<macros:MessageButton id="detailBMessages"/>
+				</f:actions>
+			</f:DynamicPageTitle>
+		</f:title>
+
+		<f:header>
+			<f:DynamicPageHeader id="detailBHeader" pinnable="true">
+				<FlexBox id="detailBHeaderBox" wrap="Wrap" alignItems="Start">
+					<Avatar id="detailBCover" src="{path: 'coverUrl', formatter: '.formatter.coverSrc'}"
+						displaySize="L" displayShape="Square" imageFitType="Cover" class="sapUiMediumMarginEnd"/>
+					<!--
+					  [WHAT] macros:Field = ONE field from the metadata (like SmartField).
+					         metaPath  the property, relative to the page context (/Books)
+					         readOnly  "true": display only, even in edit mode
+					  It renders label-less; we add a Label. Texts (Common.Text), currency, criticality come from annotations.
+					-->
+					<VBox id="detailBFacts" class="sapUiMediumMarginEnd">
+						<Label id="detailBAuthorLbl" text="Author"/>
+						<macros:Field id="hfWriter" metaPath="writer_ID" readOnly="true"/>
+						<Label id="detailBPriceLbl" text="Price" class="sapUiSmallMarginTop"/>
+						<macros:Field id="hfPrice" metaPath="price" readOnly="true"/>
+					</VBox>
+					<VBox id="detailBFacts2" class="sapUiMediumMarginEnd">
+						<Label id="detailBStatusLbl" text="Status"/>
+						<macros:Field id="hfStatus" metaPath="status_code" readOnly="true"/>
+						<Label id="detailBStarsLbl" text="{i18n>colStars}" class="sapUiSmallMarginTop"/>
+						<!-- freestyle control right next to building blocks -->
+						<control:RatingStars id="detailBStars" value="{rating}" showValue="true"/>
+					</VBox>
+				</FlexBox>
+			</f:DynamicPageHeader>
+		</f:header>
+
+		<f:content>
+			<VBox id="detailBContent" class="sapUiResponsiveContentPadding">
+				<!--
+				  [WHAT] macros:Form renders a WHOLE UI.FieldGroup (or a facet): labels, fields, value helps,
+				         the DataPoint#rating (stars), mandatory, read-only — all from annotations.
+				         Compare Detail A, where each field is listed by hand in the SmartForm.
+				  [WHAT] metaPath  the FieldGroup with qualifier
+				  [WHAT] title     form title (the FieldGroup's Label is not used as title here)
+				  [TRY]  add { Value: rating } to UI.FieldGroup #General in annotations.cds and reload
+				-->
+				<macros:Form id="formGeneral" metaPath="@com.sap.vocabularies.UI.v1.FieldGroup#General" title="{i18n>groupGeneral}"/>
+				<macros:Form id="formPricing" metaPath="@com.sap.vocabularies.UI.v1.FieldGroup#Pricing" title="{i18n>groupPricing}"/>
+				<macros:Form id="formDescription" metaPath="@com.sap.vocabularies.UI.v1.FieldGroup#Description" title="{i18n>groupDescription}"/>
+			</VBox>
+		</f:content>
+
+		<f:footer>
+			<OverflowToolbar id="detailBFooter">
+				<ToolbarSpacer id="detailBFooterSpacer"/>
+				<Button id="detailBSave" text="{i18n>save}" type="Emphasized" press=".onSave"/>
+				<Button id="detailBCancel" text="{i18n>cancel}" press=".onCancel"/>
+			</OverflowToolbar>
+		</f:footer>
+	</f:DynamicPage>
+</mvc:View>

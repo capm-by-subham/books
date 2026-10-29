@@ -1,0 +1,478 @@
+<!--
+  PAGE A — CLASSIC SMART CONTROLS (sap.ui.comp) on OData V2 (/odata/v2/freestyle)
+  Smart controls read the V2 $metadata + annotations and build the UI themselves:
+    SmartFilterBar  <- UI.SelectionFields, Common.ValueList, Common.Text, labels
+    SmartTable      <- UI.LineItem, UI.PresentationVariant, Criticality, ISOCurrency, SemanticObject
+    SmartChart      <- UI.Chart + sap:aggregation-role (Analytics.Dimension / Measure)
+  The DEFAULT model of this view is set to the V2 model in PageA.controller.js (onInit), because
+  smart controls always use the default (unnamed) model.
+
+  Three sections (switch in the title): Books | Sales Analytics | Genre Tree.
+  Each section has its own SmartVariantManagement ("page variant") managing its filter bar + table (+ chart).
+-->
+<mvc:View
+	controllerName="booksfreestyle.controller.PageA"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:f="sap.f"
+	xmlns:core="sap.ui.core"
+	xmlns:table="sap.ui.table"
+	xmlns:rowmodes="sap.ui.table.rowmodes"
+	xmlns:smartFilterBar="sap.ui.comp.smartfilterbar"
+	xmlns:smartTable="sap.ui.comp.smarttable"
+	xmlns:smartChart="sap.ui.comp.smartchart"
+	xmlns:smartVariantManagement="sap.ui.comp.smartvariants"
+	xmlns:control="booksfreestyle.control"
+	height="100%">
+
+	<f:DynamicPage id="pageA" toggleHeaderOnTitleClick="true" fitContent="false" headerPinned="false">
+
+		<!-- ============================== TITLE ============================== -->
+		<f:title>
+			<f:DynamicPageTitle id="pageATitle">
+				<!--
+				  [WHAT] SmartVariantManagement = PAGE VARIANT: one "view" (variant) stores the state of all
+				         controls that point to it via smartVariant="..." (filter values, table columns/sort,
+				         chart type/dimensions). Click the title text -> 'Save As' -> name it -> reload: still there.
+				  [WHY]  three of them, one per section, because each section works on a different entity set
+				  [WHAT] persistencyKey  unique key under which the variants are stored (LocalStorageConnector, see index.html)
+				  [WHAT] showExecuteOnSelection  checkbox "Apply Automatically" in 'Manage Views'
+				  [TRY]  set showSetAsDefault="false" -> no 'Set as Default' option in 'Manage Views'
+				  visible: expression binding -> only the variant management of the current section is shown
+				-->
+				<f:heading>
+					<FlexBox id="pageAHeadingBox" alignItems="Center">
+						<Button id="pageABack" icon="sap-icon://nav-back" type="Transparent" press=".onNavBack" tooltip="{i18n>back}"/>
+						<smartVariantManagement:SmartVariantManagement id="svmBooks"
+							persistencyKey="booksfreestyle.PageA.svmBooks"
+							showExecuteOnSelection="true"
+							visible="{= ${view>/section} === 'books' }"/>
+						<smartVariantManagement:SmartVariantManagement id="svmSales"
+							persistencyKey="booksfreestyle.PageA.svmSales"
+							showExecuteOnSelection="true"
+							visible="{= ${view>/section} === 'sales' }"/>
+						<Title id="pageATreeTitle" text="{i18n>sectionTree}" visible="{= ${view>/section} === 'tree' }"/>
+					</FlexBox>
+				</f:heading>
+				<f:expandedContent>
+					<Text id="pageASubtitle" text="{i18n>pageASubtitle}"/>
+				</f:expandedContent>
+				<f:snappedContent>
+					<!-- [WHAT] when the header is collapsed, show the current filters as text ("Filtered By: Genre (1)") -->
+					<Text id="pageASnapped" text="{view>/filterSummary}"/>
+				</f:snappedContent>
+				<f:actions>
+					<!-- [WHAT] SegmentedButton bound TwoWay to view>/section: selecting a button updates the model,
+					           and all visible="{= ${view>/section} === ...}" bindings react -->
+					<SegmentedButton id="pageASection" selectedKey="{view>/section}" selectionChange=".onSectionChange">
+						<items>
+							<SegmentedButtonItem id="segBooks" key="books" text="{i18n>sectionBooks}" icon="sap-icon://course-book"/>
+							<SegmentedButtonItem id="segSales" key="sales" text="{i18n>sectionSales}" icon="sap-icon://bar-chart"/>
+							<SegmentedButtonItem id="segTree" key="tree" text="{i18n>sectionTree}" icon="sap-icon://tree"/>
+						</items>
+					</SegmentedButton>
+					<!-- [WHAT] message button: visible only when there are messages; the number = how many -->
+					<Button id="pageAMessages" icon="sap-icon://message-popup" type="Emphasized"
+						text="{= ${message>/}.length }" visible="{= ${message>/}.length > 0 }"
+						tooltip="{i18n>messages}" press=".onMessagePopoverPress"/>
+				</f:actions>
+			</f:DynamicPageTitle>
+		</f:title>
+
+		<!-- ============================== HEADER: FILTER BARS ============================== -->
+		<f:header>
+			<f:DynamicPageHeader id="pageAHeader" pinnable="true">
+				<VBox id="pageAHeaderBox">
+					<!-- [WHAT] live mode switch: SmartFilterBar.liveMode = search on every change, no 'Go' button -->
+					<FlexBox id="pageALiveBox" alignItems="Center" justifyContent="End" visible="{= ${view>/section} === 'books' }">
+						<Label id="pageALiveLabel" text="{i18n>liveMode}" labelFor="pageALive" class="sapUiTinyMarginEnd"/>
+						<Switch id="pageALive" state="{view>/liveMode}" change=".onLiveModeChange"/>
+					</FlexBox>
+
+					<!--
+					  =========== SmartFilterBar for Books ===========
+					  [WHAT] entitySet            which V2 entity set the filters are for (fields from UI.SelectionFields)
+					  [WHAT] smartVariant         id of the SmartVariantManagement that stores its filter values
+					  [WHAT] persistencyKey       key for its own part of the variant
+					  [WHAT] enableBasicSearch    the 'Search' field -> V2 'search=' -> CAP $search (@cds.search)
+					  [WHAT] showFilterConfiguration  the 'Adapt Filters' button (add/remove filter fields)
+					  [WHAT] showClearOnFB / showRestoreOnFB  'Clear' and 'Restore' buttons next to 'Go'
+					  [WHAT] useDateRangeType     date filters offer "Today", "Last 7 days", ... [TRY] set to false
+					  [WHAT] search / initialized / filterChange  events -> controller
+					  [WHAT] beforeVariantFetch / afterVariantLoad  store/restore our CUSTOM filter field in the variant
+					  [TRY]  set useToolbar="true" -> the filter bar gets its own toolbar with a variant management
+					-->
+					<smartFilterBar:SmartFilterBar id="sfbBooks"
+						entitySet="Books"
+						smartVariant="svmBooks"
+						persistencyKey="booksfreestyle.PageA.sfbBooks"
+						enableBasicSearch="true"
+						showFilterConfiguration="true"
+						showClearOnFB="true"
+						showRestoreOnFB="true"
+						useDateRangeType="true"
+						useToolbar="false"
+						liveMode="{view>/liveMode}"
+						search=".onSearchBooks"
+						filterChange=".onFilterChangeBooks"
+						initialized=".onFilterBarInitialized"
+						beforeVariantFetch=".onBeforeVariantFetch"
+						afterVariantLoad=".onAfterVariantLoad"
+						visible="{= ${view>/section} === 'books' }">
+						<!--
+						  [WHAT] ControlConfiguration: fine-tune ONE filter field (by property name = key)
+						-->
+						<smartFilterBar:controlConfiguration>
+							<!-- [WHAT] F4 value help (Common.ValueList on writer). displayBehaviour: only the name in tokens
+							     [WHAT] preventInitialDataFetchInValueHelpDialog="false": the dialog lists authors right away
+							     [TRY]  set it to "true" -> the dialog is empty until you press 'Go' in it -->
+							<smartFilterBar:ControlConfiguration id="ccWriter" key="writer_ID"
+								displayBehaviour="descriptionOnly"
+								preventInitialDataFetchInValueHelpDialog="false"
+								visibleInAdvancedArea="true"/>
+
+							<!-- [WHAT] dropdown (ValueListWithFixedValues) with DEFAULT values: the filter starts with
+							            Available, Low stock, Out of stock -> Discontinued books (Eleonora) are hidden
+							     [WHY]  default filter values are what a user sees first; 'Restore' brings them back
+							     [TRY]  remove the defaultFilterValues block -> Eleonora shows up after reload -->
+							<smartFilterBar:ControlConfiguration id="ccStatus" key="status_code"
+								visibleInAdvancedArea="true"
+								displayBehaviour="descriptionOnly">
+								<smartFilterBar:defaultFilterValues>
+									<smartFilterBar:SelectOption id="defA" low="A"/>
+									<smartFilterBar:SelectOption id="defL" low="L"/>
+									<smartFilterBar:SelectOption id="defO" low="O"/>
+								</smartFilterBar:defaultFilterValues>
+							</smartFilterBar:ControlConfiguration>
+
+							<!-- [WHAT] force a control type: genre as a single-select dropdown instead of multi-select
+							     [TRY]  remove controlType -> MultiComboBox (several genres at once) -->
+							<smartFilterBar:ControlConfiguration id="ccGenre" key="genre_code"
+								controlType="dropDownList"
+								displayBehaviour="descriptionAndId"
+								visibleInAdvancedArea="true"/>
+
+							<!-- [WHAT] add a field that is NOT in UI.SelectionFields; index = position -->
+							<smartFilterBar:ControlConfiguration id="ccRating" key="rating" visibleInAdvancedArea="true" index="6"/>
+
+							<!--
+							  [WHAT] CUSTOM filter field: any control (here a Switch). The SmartFilterBar doesn't know
+							         what it means, so PageA.controller.js turns it into a Filter in onBeforeRebindBooks.
+							  [WHAT] key       any unique name (no property 'inStockOnly' exists)
+							  [WHAT] groupId   _BASIC = the basic filter group
+							-->
+							<smartFilterBar:ControlConfiguration id="ccInStock" key="inStockOnly"
+								label="{i18n>filterInStock}" groupId="_BASIC" index="7" visibleInAdvancedArea="true">
+								<smartFilterBar:customControl>
+									<Switch id="swInStock" change=".onInStockChange"/>
+								</smartFilterBar:customControl>
+							</smartFilterBar:ControlConfiguration>
+						</smartFilterBar:controlConfiguration>
+						<!-- [WHAT] layoutData: let the filter bar shrink in the header FlexBox -->
+						<smartFilterBar:layoutData>
+							<FlexItemData id="sfbBooksLayout" shrinkFactor="0"/>
+						</smartFilterBar:layoutData>
+					</smartFilterBar:SmartFilterBar>
+
+					<!-- =========== SmartFilterBar for Sales (analytical entity) =========== -->
+					<smartFilterBar:SmartFilterBar id="sfbSales"
+						entitySet="BookSalesAnalytics"
+						smartVariant="svmSales"
+						persistencyKey="booksfreestyle.PageA.sfbSales"
+						showFilterConfiguration="true"
+						showClearOnFB="true"
+						search=".onSearchSales"
+						visible="{= ${view>/section} === 'sales' }">
+						<smartFilterBar:controlConfiguration>
+							<smartFilterBar:ControlConfiguration id="ccSalesBook" key="book_ID"
+								displayBehaviour="descriptionOnly" preventInitialDataFetchInValueHelpDialog="false"/>
+						</smartFilterBar:controlConfiguration>
+					</smartFilterBar:SmartFilterBar>
+				</VBox>
+			</f:DynamicPageHeader>
+		</f:header>
+
+		<!-- ============================== CONTENT ============================== -->
+		<f:content>
+			<VBox id="pageAContent">
+
+				<!--
+				  =========== BOOKS: SmartTable, ResponsiveTable variant ===========
+				  [WHAT] entitySet          V2 entity set; columns come from UI.LineItem
+				  [WHAT] smartFilterId      the filter bar that drives this table ('Go' -> rebind)
+				  [WHAT] smartVariant / useVariantManagement / persistencyKey
+				                            table settings (columns, sort, group, filter) are saved in the page variant
+				  [WHAT] tableType          ResponsiveTable (sap.m.Table: popin on small screens)
+				  [WHAT] header + showRowCount  "Books (9)" — the count comes from $inlinecount
+				  [WHAT] enableExport       'Export to Spreadsheet' button (sap.ui.export, client-side xlsx)
+				  [WHAT] useTablePersonalisation  gear button: Columns / Sort / Filter / Group
+				  [WHAT] showFullScreenButton  maximize the table
+				  [WHAT] enableAutoBinding  load data immediately (otherwise only after 'Go')  [TRY] false
+				  [WHAT] requestAtLeastFields  always $select these, even if no column shows them
+				                            (needed by our custom column + formatters)
+				  [WHAT] ignoredFields      never offered as columns (also not in personalization)
+				  [WHAT] initiallyVisibleFields  [TRY] add initiallyVisibleFields="title,stock" -> only these 2 columns
+				                            initially (instead of UI.LineItem)
+				  [WHAT] beforeRebindTable  hook before EVERY data request: add filters/sorters/parameters in code
+				  [WHAT] demandPopin        columns that don't fit go into a popin below the row (phone)
+				  [WHAT] placeToolbarInTable  toolbar sticks with the table header when scrolling
+				-->
+				<smartTable:SmartTable id="stBooks"
+					entitySet="Books"
+					smartFilterId="sfbBooks"
+					smartVariant="svmBooks"
+					useVariantManagement="true"
+					persistencyKey="booksfreestyle.PageA.stBooks"
+					tableType="ResponsiveTable"
+					header="{i18n>booksTableHeader}"
+					showRowCount="true"
+					enableExport="true"
+					useTablePersonalisation="true"
+					showFullScreenButton="true"
+					enableAutoBinding="true"
+					requestAtLeastFields="ID,rating,currency_code,statusCriticality,title"
+					ignoredFields="author,coverUrl,descr"
+					beforeRebindTable=".onBeforeRebindBooks"
+					demandPopin="true"
+					placeToolbarInTable="true"
+					class="sapUiResponsiveContentPadding"
+					visible="{= ${view>/section} === 'books' &amp;&amp; ${view>/tableType} === 'responsive' }">
+
+					<!-- [WHAT] customToolbar: our own buttons; the SmartTable ADDS its buttons (p13n, export) at the end -->
+					<smartTable:customToolbar>
+						<OverflowToolbar id="tbBooks" design="Transparent">
+							<ToolbarSpacer id="tbBooksSpacer"/>
+							<!-- [WHAT] {selectedRows} with a placeholder: "2 selected" -->
+							<Text id="tbBooksSelected" text="{path: 'view>/selectedCount', formatter: '.formatSelected'}"
+								visible="{= ${view>/selectedCount} > 0 }"/>
+							<SegmentedButton id="tbBooksType" selectedKey="{view>/tableType}">
+								<items>
+									<SegmentedButtonItem id="tbResp" key="responsive" text="{i18n>tableResponsive}"/>
+									<SegmentedButtonItem id="tbGrid" key="grid" text="{i18n>tableGrid}"/>
+								</items>
+							</SegmentedButton>
+							<Button id="tbBooksCreate" text="{i18n>create}" icon="sap-icon://add" press=".onOpenCreateDialog"/>
+							<!-- [WHAT] enabled via expression binding: exactly ONE row selected -->
+							<Button id="tbBooksAddStock" text="{i18n>addStock}" press=".onAddStock"
+								enabled="{= ${view>/selectedCount} === 1 }"/>
+							<Button id="tbBooksDelete" text="{i18n>delete}" press=".onDelete"
+								enabled="{= ${view>/selectedCount} > 0 }"/>
+						</OverflowToolbar>
+					</smartTable:customToolbar>
+
+					<!--
+					  [WHAT] an inner sap.m.Table: lets us configure the table control itself and add CUSTOM COLUMNS.
+					         The SmartTable still generates all annotation columns and adds them to it.
+					  [WHAT] mode="MultiSelect"   checkboxes  [TRY] SingleSelectLeft
+					  [WHAT] growing              load 20 rows, 'More' loads the next 20 ($skip/$top)
+					  [WHAT] sticky               header toolbar + column headers stay visible when scrolling
+					  [WHAT] itemPress            row press (items need type="Navigation", see the template below)
+					-->
+					<Table id="innerBooks" mode="MultiSelect" growing="true" growingThreshold="20"
+						sticky="HeaderToolbar,ColumnHeaders" selectionChange=".onSelectionChange" itemPress=".onRowPress">
+						<columns>
+							<!--
+							  [WHAT] CUSTOM COLUMN. p13nData tells the SmartTable about it, so it appears in personalization
+							         and can be sorted/filtered by its leadingProperty.
+							         columnKey = id in p13n, leadingProperty = model property, columnIndex = position
+							  [TRY]  change columnIndex to 0 -> the stars become the first column
+							-->
+							<Column id="colStars" hAlign="Center" width="7rem">
+								<customData>
+									<core:CustomData key="p13nData"
+										value='\{"columnKey": "stars", "leadingProperty": "rating", "sortProperty": "rating", "filterProperty": "rating", "columnIndex": "9"}'/>
+								</customData>
+								<Text id="colStarsText" text="{i18n>colStars}"/>
+							</Column>
+						</columns>
+						<items>
+							<!-- [WHAT] row template: only the cells of the CUSTOM columns. type="Navigation" = arrow + itemPress -->
+							<ColumnListItem id="rowBooks" type="Navigation">
+								<cells>
+									<!-- our custom control (control/RatingStars.js) -->
+									<control:RatingStars id="cellStars" value="{rating}"/>
+								</cells>
+							</ColumnListItem>
+						</items>
+					</Table>
+				</smartTable:SmartTable>
+
+				<!--
+				  =========== BOOKS: SmartTable, GridTable variant (sap.ui.table.Table) ===========
+				  Same entity set and filter bar, different table type: many rows, fixed columns, row actions.
+				  [WHAT] tableType="Table"   = the GRID table (sap.ui.table.Table): virtual scrolling, only visible
+				                             rows are rendered (the enum value is "Table", not "GridTable")
+				  [TRY]  set tableType="AnalyticalTable" -> CAN'T: Books isn't an analytical entity (see Sales below)
+				-->
+				<smartTable:SmartTable id="stBooksGrid"
+					entitySet="Books"
+					smartFilterId="sfbBooks"
+					smartVariant="svmBooks"
+					useVariantManagement="true"
+					persistencyKey="booksfreestyle.PageA.stBooksGrid"
+					tableType="Table"
+					header="{i18n>booksGridHeader}"
+					showRowCount="true"
+					enableExport="true"
+					useTablePersonalisation="true"
+					showFullScreenButton="true"
+					enableAutoBinding="true"
+					requestAtLeastFields="ID,rating,currency_code,statusCriticality,title"
+					ignoredFields="author,coverUrl,descr"
+					beforeRebindTable=".onBeforeRebindBooks"
+					class="sapUiResponsiveContentPadding"
+					visible="{= ${view>/section} === 'books' &amp;&amp; ${view>/tableType} === 'grid' }">
+					<smartTable:customToolbar>
+						<OverflowToolbar id="tbGridBooks" design="Transparent">
+							<ToolbarSpacer id="tbGridSpacer"/>
+							<SegmentedButton id="tbGridType" selectedKey="{view>/tableType}">
+								<items>
+									<SegmentedButtonItem id="tbGridResp" key="responsive" text="{i18n>tableResponsive}"/>
+									<SegmentedButtonItem id="tbGridGrid" key="grid" text="{i18n>tableGrid}"/>
+								</items>
+							</SegmentedButton>
+						</OverflowToolbar>
+					</smartTable:customToolbar>
+					<!--
+					  [WHAT] inner sap.ui.table.Table:
+					         selectionMode="MultiToggle"  checkbox column
+					         rowMode Auto                 as many rows as fit the screen   [TRY] Fixed with rowCount
+					         fixedColumnCount="1"         first column stays when scrolling horizontally
+					         rowActionCount="1" + rowActionTemplate  a navigation arrow at the end of each row
+					-->
+					<table:Table id="innerBooksGrid" selectionMode="MultiToggle" fixedColumnCount="1" rowActionCount="1"
+						rowSelectionChange=".onGridSelectionChange">
+						<table:rowMode>
+							<!-- [WHAT] rowmodes.Auto: as many rows as fit the screen, at least 8 -->
+							<rowmodes:Auto id="gridRowMode" minRowCount="8"/>
+						</table:rowMode>
+						<table:rowActionTemplate>
+							<table:RowAction id="gridRowAction">
+								<table:items>
+									<table:RowActionItem id="gridRowNav" type="Navigation" press=".onGridRowPress"/>
+								</table:items>
+							</table:RowAction>
+						</table:rowActionTemplate>
+						<table:columns>
+							<!-- custom column in a GridTable: Label + template (instead of header + cells) -->
+							<table:Column id="gridColStars" hAlign="Center" width="8rem">
+								<table:customData>
+									<core:CustomData key="p13nData"
+										value='\{"columnKey": "stars", "leadingProperty": "rating", "sortProperty": "rating", "columnIndex": "9"}'/>
+								</table:customData>
+								<Label id="gridColStarsLabel" text="{i18n>colStars}"/>
+								<table:template>
+									<control:RatingStars id="gridCellStars" value="{rating}" showValue="true"/>
+								</table:template>
+							</table:Column>
+						</table:columns>
+					</table:Table>
+				</smartTable:SmartTable>
+
+				<!--
+				  =========== SALES: SmartChart ===========
+				  [WHAT] entitySet           analytical V2 entity set (sap:semantics="aggregate")
+				  [WHAT] smartFilterId       filter bar -> chart reloads on 'Go'
+				  [WHAT] smartVariant / useVariantManagement / persistencyKey  chart type + dimensions saved in the page variant
+				  [WHAT] useChartPersonalisation  gear: choose dimensions/measures, sort
+				  [WHAT] showDrillButtons / showDrillBreadcrumbs  'Drill Down' + breadcrumbs ("All > West > Online")
+				  [WHAT] showDetailsButton   'Details' popover for selected data points
+				  [WHAT] showLegendButton / showZoomButtons / showFullScreenButton / showChartTooltip
+				  [WHAT] selectionMode       Multi: select several bars (Ctrl+click) -> used to filter the table below
+				  [WHAT] chartType switcher  the chart-type button is always there (bar/line/donut/...)
+				  [WHAT] requestAtLeastFields currency_code: needed so amounts can be shown with their currency
+				  [WHAT] initialized         chart ready -> attach to the inner sap.chart.Chart selection events
+				  [TRY]  ignoredChartTypes="pie,donut" -> these types disappear from the chart-type list
+				-->
+				<smartChart:SmartChart id="scSales"
+					entitySet="BookSalesAnalytics"
+					smartFilterId="sfbSales"
+					smartVariant="svmSales"
+					useVariantManagement="true"
+					persistencyKey="booksfreestyle.PageA.scSales"
+					header="{i18n>salesChartHeader}"
+					enableAutoBinding="true"
+					useChartPersonalisation="true"
+					showDrillButtons="true"
+					showDrillBreadcrumbs="true"
+					showDetailsButton="true"
+					showLegendButton="true"
+					showZoomButtons="true"
+					showFullScreenButton="true"
+					showChartTooltip="true"
+					selectionMode="Multi"
+					requestAtLeastFields="currency_code"
+					height="26rem"
+					initialized=".onChartInitialized"
+					class="sapUiResponsiveContentPadding"
+					visible="{= ${view>/section} === 'sales' }"/>
+
+				<!-- [WHAT] info strip: shown while the chart selection filters the table; close = clear the selection -->
+				<MessageStrip id="chartFilterStrip" type="Information" showIcon="true" showCloseButton="true"
+					text="{path: 'view>/chartFilterText', formatter: '.formatChartFilter'}"
+					visible="{= ${view>/section} === 'sales' &amp;&amp; !!${view>/chartFilterText} }"
+					close=".onClearChartSelection" class="sapUiSmallMarginBeginEnd"/>
+
+				<!--
+				  =========== SALES: SmartTable, AnalyticalTable ===========
+				  [WHAT] tableType="AnalyticalTable"  groups rows by dimensions and shows TOTALS for measures
+				         (requests use $select of dimensions + measures; the V2 adapter turns them into $apply)
+				  [TRY]  table settings -> Group -> 'Region' -> subtotals per region
+				  [WHAT] enableAutoColumnWidth  column widths from the data type/label length (all 8 columns fit)
+				  [WHAT] beforeRebindTable adds the CHART SELECTION as a filter
+				-->
+				<smartTable:SmartTable id="stSales"
+					entitySet="BookSalesAnalytics"
+					smartFilterId="sfbSales"
+					smartVariant="svmSales"
+					useVariantManagement="true"
+					persistencyKey="booksfreestyle.PageA.stSales"
+					tableType="AnalyticalTable"
+					enableAutoColumnWidth="true"
+					header="{i18n>salesTableHeader}"
+					showRowCount="true"
+					enableExport="true"
+					useTablePersonalisation="true"
+					showFullScreenButton="true"
+					enableAutoBinding="true"
+					beforeRebindTable=".onBeforeRebindSales"
+					class="sapUiResponsiveContentPadding"
+					visible="{= ${view>/section} === 'sales' }">
+					<!-- [WHAT] inner AnalyticalTable only to set the row count (default would be 5 rows)
+					     [WHAT] rowmodes.Fixed rowCount="10" -> always 10 rows, scroll for more  [TRY] rowmodes:Interactive (drag to resize) -->
+					<table:AnalyticalTable id="innerSales" selectionMode="None">
+						<table:rowMode>
+							<rowmodes:Fixed id="salesRowMode" rowCount="10"/>
+						</table:rowMode>
+					</table:AnalyticalTable>
+				</smartTable:SmartTable>
+
+				<!--
+				  =========== GENRE TREE: SmartTable, TreeTable ===========
+				  [WHAT] tableType="TreeTable"  hierarchy from the sap:hierarchy-*-for annotations (GenreTree)
+				         Requests: hierarchyLevel le 0 first, then parentCode eq 'FIC' when you expand Fiction
+				  [WHAT] useVariantManagement="false"  no variants here (shows that it's optional)
+				  [TRY]  in beforeRebindTreeTable set numberOfExpandedLevels to 2 -> the tree starts fully expanded
+				-->
+				<smartTable:SmartTable id="stTree"
+					entitySet="GenreTree"
+					tableType="TreeTable"
+					header="{i18n>treeTableHeader}"
+					showRowCount="false"
+					enableExport="false"
+					useVariantManagement="false"
+					useTablePersonalisation="true"
+					enableAutoBinding="true"
+					beforeRebindTable=".onBeforeRebindTree"
+					class="sapUiResponsiveContentPadding"
+					visible="{= ${view>/section} === 'tree' }">
+					<table:TreeTable id="innerTree" selectionMode="Single">
+						<table:rowMode>
+							<rowmodes:Fixed id="treeRowMode" rowCount="12"/>
+						</table:rowMode>
+					</table:TreeTable>
+				</smartTable:SmartTable>
+			</VBox>
+		</f:content>
+	</f:DynamicPage>
+</mvc:View>

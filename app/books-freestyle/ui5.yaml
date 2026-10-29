@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://sap.github.io/ui5-tooling/schema/ui5.yaml.json
+# [WHAT] UI5 tooling config. cds-plugin-ui5 reads it and mounts the app at /<metadata.name>/
+#        -> http://localhost:4004/booksfreestyle/index.html
+specVersion: "4.0"
+metadata:
+  name: booksfreestyle
+type: application
+server:
+  customMiddleware:
+    # [WHAT] proxies /resources and /test-resources to the SAPUI5 CDN (version from manifest minUI5Version)
+    - name: fiori-tools-proxy
+      afterMiddleware: compression
+      configuration:
+        ignoreCertErrors: false
+        ui5:
+          path:
+            - /resources
+            - /test-resources
+          url: https://sapui5.hana.ondemand.com
+    # [WHAT] reloads the browser when a file in webapp/ changes
+    - name: fiori-tools-appreload
+      afterMiddleware: compression
+      configuration:
+        port: 35729
+        path: webapp
+        delay: 300

@@ -2,6 +2,7 @@
   "name": "books",
   "version": "1.0.0",
   "dependencies": {
+    "@cap-js-community/odata-v2-adapter": "^1.16.1",
     "@sap/cds": "^9"
   },
   "devDependencies": {
@@ -13,7 +14,9 @@
     "watch-book": "cds watch --open book/index.html?sap-ui-xx-viewCache=false --livereload false",
     "watch-books_list": "cds watch --open bookslist/index.html?sap-ui-xx-viewCache=false --livereload false",
     "watch-book-sales-alp": "cds watch --open booksalesalp/index.html?sap-ui-xx-viewCache=false --livereload false",
-    "watch-launchpad": "cds watch --open launchpad.html --livereload false"
+    "watch-launchpad": "cds watch --open launchpad.html --livereload false",
+    "watch-books-freestyle": "cds watch --open booksfreestyle/index.html?sap-ui-xx-viewCache=false --livereload false",
+    "watch-myapp": "cds watch --open myapp/index.html?sap-ui-xx-viewCache=false --livereload false"
   },
   "private": true,
   "workspaces": [
@@ -21,6 +24,8 @@
   ],
   "sapux": [
     "app/books_list",
-    "app/book-sales-alp"
+    "app/book-sales-alp",
+    "app/books-freestyle",
+    "app/myapp"
   ]
 }

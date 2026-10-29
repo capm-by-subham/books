@@ -1,7 +1,11 @@
-code;name;descr
-GOT;Gothic;Dark settings, mystery and the supernatural
-ROM;Romance;Stories centred on love and relationships
-POE;Poetry;Verse and narrative poems
-HOR;Horror;Stories meant to frighten and unsettle
-FAN;Fantasy;Magic, wizards and impossible worlds
-MYS;Mystery;Crimes and puzzles to be solved
+code;name;descr;parent_code
+FIC;Fiction;Invented stories (root of the genre tree);
+SPE;Speculative;Stories beyond the real world;FIC
+GOT;Gothic;Dark settings, mystery and the supernatural;FIC
+ROM;Romance;Stories centred on love and relationships;FIC
+MYS;Mystery;Crimes and puzzles to be solved;FIC
+HOR;Horror;Stories meant to frighten and unsettle;SPE
+FAN;Fantasy;Magic, wizards and impossible worlds;SPE
+POE;Poetry;Verse and narrative poems;
+NAR;Narrative Poems;Poems that tell a story;POE
+LYR;Lyric Poems;Short poems expressing feelings;POE
